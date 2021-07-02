@@ -122,7 +122,7 @@ printf "R_sphere = %f\nchains = %d\nlength = %d \ngpuid= %d\n",$R_sphere,$chains
 
 $Ndir = 1;
 
-$desc = sprintf "brush_p%d_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2];
+$desc = sprintf "brush_p%d_c%d_R%f_N%d_str%s_press%.2f",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2];
 
 if($datafile)
 {
@@ -131,15 +131,15 @@ $is_datafile = 1;
 else
 {
 $is_datafile = 0;
-$datafile = sprintf "data_p%d_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2];
+$datafile = sprintf "data_p%d_c%d_R%f_N%d_str%s_press%.2f",$spheres,$chains,$R_sphere,$N,$structure,$pressure;
 }
 
-$dirname = sprintf "p%d_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_str%s_n%d",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$structure,$Ndir;
+$dirname = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$Ndir;
 $scriptname = "script";
 $shellname_all = "run.sh";
 #$shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
 $shellname = sprintf "run_cpu%d.sh",$cpuid;  #look at run.sh too
-$output_filename = sprintf "p%d_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_str%s_n%d",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$structure,$Ndir;
+$output_filename = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$Ndir;
 
 if( -d $dirname)
  {
@@ -147,9 +147,9 @@ if( -d $dirname)
  while(-d $dirname)
   {
   $Ndir++;
-  $dirname = sprintf "p%d_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_str%s_n%d",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$structure,$Ndir;
+  $dirname = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$Ndir;
 #  $shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
-  $output_filename = sprintf "p%d_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_str%s_n%d",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$structure,$Ndir;;
+  $output_filename = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$Ndir;;
   }
  }
 
