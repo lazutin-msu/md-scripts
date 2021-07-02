@@ -34,11 +34,16 @@ GetOptions (
 'rsphere|a=f' => \$R_sphere,
 'repeat|r=i' => \$repeat,
 'time|t=i' => \$time,
-'step|s=f' => \$step,
+#'step|s=f' => \$step,
 'g|gpuid=i' => \$gpu_num,
 'p|spheres=i' => \$spheres,
 'x|dx=f' => \$spheres_dx,
 'pressure=f' => \$pressure,
+'time_deform=i' => \$time_deform,
+'period_deform=i' => \$period_deform,
+'amp_deform=f' => \$amp_deform,
+'dir_deform=s' => \$dir_deform,
+'eps|e=f{3}' => \@epsilon,
 'help|h' => \$help);
 if($help)
  {
@@ -50,13 +55,23 @@ if($help)
   -a rsphere = 30
   -r repeat = 1
   -t time = 2000000
-  -s step 
+#  -s step 
   -p spheres
   -x dx spheres dx
   -g gpuid
-  -p pressure
+  --pressure
+  --time_deform=100
+  --period_deform=5000 (tau)
+  --amp_deform=0.05 (x l_box)
+  --dir_deform=x (x, y or z)
+  -e --eps epsAA epsAB epsBB
   -h help\n");
  }
+
+if(!$time_deform) {$time_deform = 100;}
+if(!$period_deform) {$period_deform = 5000;}
+if(!$amp_deform) {$amp_deform = 0.05;}
+if(($dir_deform ne "x")&&($dir_deform ne "y")&&($dir_deform ne "z")) {$dir_deform = "x";}
 
 print STDERR "eps = ".$epsilon[0]." ".$epsilon[1]." ".$epsilon[2]."\n";
 
@@ -130,12 +145,12 @@ $is_datafile = 0;
 $datafile = sprintf "data_p%d_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2];
 }
 
-$dirname = sprintf "p%d_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_n%d",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$Ndir;
+$dirname = sprintf "p%d_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_period%d_amp_%.3f_n%d",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$period_deform,$amp_deform,$Ndir;
 $scriptname = "script";
 $shellname_all = "run.sh";
 #$shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
 $shellname = sprintf "run_cpu%d.sh",$cpuid;  #look at run.sh too
-$output_filename = sprintf "p%d_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_n%d",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$Ndir;
+$output_filename = sprintf "p%d_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_period%d_amp_%.3f_n%d",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$period_deform,$amp_deform,$Ndir;
 
 if( -d $dirname)
  {
@@ -143,9 +158,9 @@ if( -d $dirname)
  while(-d $dirname)
   {
   $Ndir++;
-  $dirname = sprintf "p%d_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_n%d",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$Ndir;
+  $dirname = sprintf "p%d_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_period%d_amp_%.3f_n%d",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$period_deform,$amp_deform,$Ndir;
 #  $shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
-  $output_filename = sprintf "p%d_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_n%d",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$Ndir;;
+  $output_filename = sprintf "p%d_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_period%d_amp_%.3f_n%d",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$period_deform,$amp_deform,$Ndir;
   }
  }
 
@@ -403,6 +418,25 @@ $time_energy = $time /4;
 $step_energy = 100;
 $num_energy = $time_energy / $step_energy;
 
+$time_msd = $time;
+$step_msd = 1000;
+$num_msd = $time_msd / $step_msd;
+
+$time_rgyr = 1000000;
+$step_rgyr = 1000;
+$num_rgyr = $time_rgyr / $step_rgyr;
+
+$time_clust = 1000000;
+$step_clust = 1000;
+$num_clust = $time_clust / $step_clust;
+
+$timestep = 0.005; 
+
+$time_modul = $time_deform;
+$step_modul = 10;
+$num_modul = $time_modul / $step_modul;
+
+
 $set_temp = 1.0;
 
 $R_sphere_cutoff = 1.1224620 * $R_sphere;
@@ -426,17 +460,31 @@ special_bonds lj/coul 1.0 1.0 1.0
 
 read_data $datafile
 
+END
+
+if(!datafile)
+{
+print SCRIPT <<END;
 velocity all create ${set_temp} $seed2
+END
+}
+else
+{
+print SCRIPT <<END;
+#velocity all create ${set_temp} $seed2
+END
+}
+print SCRIPT <<END;
 
 pair_coeff 1*3 1*3 lj/cut 1.0 1.0 1.1224620
 pair_coeff * 4 lj/expand 1.0 1.0 ${R_sphere2} 1.1224620
 pair_coeff 3 4 lj/expand 0.0 1.0 ${R_sphere2} 1.1224620
-pair_coeff 1 1 yukawa $epsAA[0]
-pair_coeff 1 3 yukawa $epsAA[0]
-pair_coeff 3 3 yukawa $epsAA[0]
-pair_coeff 1 2 yukawa $epsAB[0]
-pair_coeff 2 3 yukawa $epsAB[0]
-pair_coeff 2 2 yukawa $epsBB[0]
+pair_coeff 1 1 yukawa $epsilon[0]
+pair_coeff 1 3 yukawa $epsilon[0]
+pair_coeff 3 3 yukawa $epsilon[0]
+pair_coeff 1 2 yukawa $epsilon[1]
+pair_coeff 2 3 yukawa $epsilon[1]
+pair_coeff 2 2 yukawa $epsilon[2]
 
 
 bond_coeff 1 30.0 1.5 0.0 1.0
@@ -512,25 +560,12 @@ print SCRIPT <<END;
 run 0
 
 
-#fix zlowall all wall/lj93 zlo EDGE 2.0 1.0 0.8583742
-#fix zhiall all wall/lj93 zhi EDGE 2.0 1.0 0.8583742
-
-#region mysphere sphere 0 0 0 ${R_sphere} side out
-#fix sphwall all wall/region mysphere lj93 2.0 1.0 0.8583742
-
-min_style quickmin 
-#timestep 0.01
-timestep 0.0001
+#min_style quickmin 
+#timestep 0.0001
 
 #dump dumpmin all atom 1 ${output_filename}.minimize.lammpstrj.gz
 
-minimize 0.0 1.0 1000 1000
-
-#undump dumpmin
-
-#write_data ${output_filename}_minimize.data
-
-#bond_coeff 1 30.0 1.5 0.0 1.0
+#minimize 0.0 1.0 1000 1000
 
 END
 
@@ -565,112 +600,41 @@ END
 
 print SCRIPT <<END;
 
-#bond_coeff 1 30.0 1.5 0.0 1.0
-
-#region cut block ${xlo_bound} ${xhi_bound} ${ylo_bound} ${yhi_bound} INF INF side in units lattice
-#group gcut dynamic type1 region cut every ${time_dump}
 
 variable partnum atomfile partnum.txt
 compute part all chunk/atom v_partnum
 compute msd all msd/chunk part 
-fix fixmsd all ave/time 1000 1 1000 c_msd[1] file msd1.txt mode vector 
-fix fixmsd2 all ave/time 1000 1 1000 c_msd[2] file msd2.txt mode vector 
-fix fixmsd3 all ave/time 1000 1 1000 c_msd[3] file msd3.txt mode vector 
-fix fixmsd4 all ave/time 1000 1 1000 c_msd[4] file msd4.txt mode vector 
+fix fixmsd all ave/time ${step_msd} 1 ${step_msd} c_msd[1] file msd1.txt mode vector 
+fix fixmsd2 all ave/time ${step_msd} 1 ${step_msd} c_msd[2] file msd2.txt mode vector 
+fix fixmsd3 all ave/time ${step_msd} 1 ${step_msd} c_msd[3] file msd3.txt mode vector 
+fix fixmsd4 all ave/time ${step_msd} 1 ${step_msd} c_msd[4] file msd4.txt mode vector 
 
 compute gyr all gyration/chunk part
-fix fixgyr all ave/time 1000 1 1000 c_gyr file gyr1.txt mode vector
-fix fixgyr2 all ave/time 1000 500 1000000 c_gyr file gyr2.txt mode vector
-fix gyrhist all ave/histo 1000 1 1000 0 50 500 c_gyr  mode vector ave one  beyond end file gyrhist.txt
-fix gyrhist2 all ave/histo 1000 500 1000000 0 50 500 c_gyr  mode vector ave one  beyond end file gyrhist2.txt
+fix fixgyr all ave/time ${step_rgyr} 1 ${step_rgyr} c_gyr file gyr1.txt mode vector
+fix fixgyr2 all ave/time ${step_rgyr} ${num_rgyr} ${time_rgyr} c_gyr file gyr2.txt mode vector
+#fix gyrhist all ave/histo 1000 1 1000 0 50 500 c_gyr  mode vector ave one  beyond end file gyrhist.txt
+#fix gyrhist2 all ave/histo 1000 500 1000000 0 50 500 c_gyr  mode vector ave one  beyond end file gyrhist2.txt
 
-compute cluster all aggregate/atom 1.5
-compute cc1 all chunk/atom c_cluster compress yes
-compute size all property/chunk cc1 count
-#fix cluhist all ave/histo 1000 1 1000 0 100000 100000 c_size mode vector ave one beyond ignore file newcluster.txt
-fix cluhistb all ave/histo 1000 500 1000000 0 100000 100000 c_size mode vector ave one beyond ignore file newclusterb.txt
-
-compute cluster2 all aggregate/atom 1.4
-compute cc2 all chunk/atom c_cluster2 compress yes
-compute size2 all property/chunk cc2 count
-#fix cluhist2 all ave/histo 1000 1 1000 0 100000 100000 c_size2 mode vector ave one beyond ignore file newcluster2.txt
-fix cluhist2b all ave/histo 1000 500 1000000 0 100000 100000 c_size2 mode vector ave one beyond ignore file newcluster2b.txt
-
-compute cluster3 all aggregate/atom 1.3
+compute cluster3 all aggregate/atom 1.0
 compute cc3 all chunk/atom c_cluster3 compress yes
 compute size3 all property/chunk cc3 count
 #fix cluhist3 all ave/histo 1000 1 1000 0 100000 100000 c_size3 mode vector ave one beyond ignore file newcluster3.txt
-fix cluhist3b all ave/histo 1000 500 1000000 0 100000 100000 c_size3 mode vector ave one beyond ignore file newcluster3b.txt
-
-compute cluster4 all aggregate/atom 1.2
-compute cc4 all chunk/atom c_cluster4 compress yes
-compute size4 all property/chunk cc4 count
-#fix cluhist4 all ave/histo 1000 1 1000 0 100000 100000 c_size4 mode vector ave one beyond ignore file newcluster4.txt
-fix cluhist4b all ave/histo 1000 500 1000000 0 100000 100000 c_size4 mode vector ave one beyond ignore file newcluster4b.txt
-
-
-compute cluster5 all aggregate/atom 1.1
-compute cc5 all chunk/atom c_cluster5 compress yes
-compute size5 all property/chunk cc5 count
-#fix cluhist5 all ave/histo 1000 1 1000 0 100000 100000 c_size5 mode vector ave one beyond ignore file newcluster5.txt
-fix cluhist5b all ave/histo 1000 500 1000000 0 100000 100000 c_size5 mode vector ave one beyond ignore file newcluster5b.txt
-
+fix cluhist3b all ave/histo ${step_clust} ${num_clust} ${time_clust} 0 100000 100000 c_size3 mode vector ave one beyond ignore file newcluster3b.txt
 
 compute yukpair all pair yukawa
 compute ljpair all pair lj/cut
-thermo 1000
-thermo_style    custom step time temp ke pe evdwl c_yukpair c_ljpair ebond  etotal press
+thermo 100
+thermo_style    custom step time temp ke pe evdwl c_yukpair c_ljpair ebond  etotal press lx ly lz pxx pyy pzz vol density
 
-#compute gyrtensor all gyration/molecule tensor 
-#compute rgyr all gyration/molecule
-
-#compute chunkmol all chunk/atom molecule nchunk once ids once compress yes
-#compute rgyr all gyration/chunk chunkmol
-
-#fix outgyr all ave/time 1000 1 1000 c_gyrtensor mode vector file ${output_filename}_tensor.txt
-#fix outrgyr all ave/time 1000 1 1000 c_rgyr mode vector file ${output_filename}_rgyr.txt
-
-#variable rgyravg equal ave(c_rgyr)
-#fix outrgyravg all ave/time 1000 1 1000 v_rgyravg  file ${output_filename}_rgyravg.txt
-
-#compute crdf all rdf ${step_energy} * *
-#fix outcrdf all ave/time ${step_energy} ${num_energy} ${time_energy} c_crdf[*] file ${output_filename}_rdf.txt mode vector
-#compute crdf11 all rdf ${step_energy} 1 1
-#fix outcrdf11 all ave/time ${step_energy} ${num_energy} ${time_energy} c_crdf11[*] file ${output_filename}_rdf11.txt mode vector
-#compute crdf12 all rdf ${step_energy} 1 2
-#fix outcrdf12 all ave/time ${step_energy} ${num_energy} ${time_energy} c_crdf12[*] file ${output_filename}_rdf12.txt mode vector
-#compute crdf22 all rdf ${step_energy} 2 2
-#fix outcrdf22 all ave/time ${step_energy} ${num_energy} ${time_energy} c_crdf22[*] file ${output_filename}_rdf22.txt mode vector
-
-#fix outrgyrhist all ave/histo 1000 250 250000 0 $N $N c_rgyr file ${output_filename}_rgyr_hist.txt ave one
-
-#fix spat all ave/spatial ${step_energy} ${num_energy} ${time_energy} z lower 0.1 density/number file ${output_filename}_spat.txt ave one
-#compute binz all chunk/atom bin/1d z lower 0.1 units box
 compute binsphere all chunk/atom bin/sphere 0 0 0 ${R_sphere} ${hi_bound} 1000 units box
 compute binspherea type1 chunk/atom bin/sphere 0 0 0 ${R_sphere} ${hi_bound} 1000 units box
 compute binsphereb type2 chunk/atom bin/sphere 0 0 0 ${R_sphere} ${hi_bound} 1000 units box
-#fix spat all ave/chunk ${step_energy} ${num_energy} ${time_energy} binz density/number file ${output_filename}_spat.txt ave one
 fix spatall all ave/chunk ${step_energy} ${num_energy} ${time_energy} binsphere density/number file ${output_filename}_spat_all.txt ave one
 
 fix spat all ave/chunk ${step_energy} ${num_energy} ${time} binsphere density/number file ${output_filename}_spat.txt ave one
 fix spata type1 ave/chunk ${step_energy} ${num_energy} ${time} binspherea density/number file ${output_filename}_spatA.txt ave one
 fix spatb type2 ave/chunk ${step_energy} ${num_energy} ${time} binsphereb density/number file ${output_filename}_spatB.txt ave one
 
-#compute cluster1 type1 cluster/atom ${r_aggr}
-#compute cluster2 type2 cluster/atom ${r_aggr}
-
-#compute clust_cut gcut cluster/atom ${r_aggr}
-
-#compute coord1 all coord/atom ${r_aggr} 1 2 3 *
-#compute coord1 all coord/atom cutoff ${r_aggr} 1 2 3 *
-
-#compute clustnum all cluster/atom ${r_aggr}
-#compute poten all pe/atom pair
-#compute bonen all pe/atom bond
-
-#dump dump_cluster all custom ${time_dump} ${output_filename}.dump.gz id type mol xu yu zu ix iy iz c_cluster1 c_cluster2 c_coord1[1] c_coord1[2] c_coord1[3] c_coord1[4] c_clustnum c_poten c_bonen c_cluster1b c_cluster1bb c_cluster1b0 c_cluster1b1 c_cluster1b2 c_cluster1b3 c_cluster1b4 c_clust_z5 c_clust_z10 c_clust_z15 c_clust_z20 c_clust_z25 c_clust_z30 c_clust_z35 c_clust_z40 c_clust_z45 c_clust_z50 c_clust_z55 c_clust_z60 c_clust_z65 c_clust_z70 c_clust_z75 c_clust_z80
-#dump dump_cluster all custom ${time_dump} ${path_to_dump}${output_filename}.dump.gz id type mol xu yu zu ix iy iz c_cluster1 c_cluster2 c_coord1[1] c_coord1[2] c_coord1[3] c_coord1[4] c_clustnum c_poten c_bonen c_clust_cut c_clust_z5 c_clust_z10 c_clust_z15 c_clust_z20 c_clust_z25 c_clust_z30 c_clust_z35 c_clust_z40 c_clust_z45 c_clust_z50 c_clust_z55 c_clust_z60 c_clust_z65 c_clust_z70 c_clust_z75 c_clust_z80
-#dump dump_cluster all custom ${time_dump} ${path_to_dump}${output_filename}.dump.gz id type mol xu yu zu ix iy iz c_cluster1 c_cluster2 c_coord1[1] c_coord1[2] c_coord1[3] c_coord1[4] c_clustnum c_poten c_bonen c_clust_cut
 dump dump_cluster all custom ${time_dump} ${path_to_dump}${output_filename}.dump.gz id type mol xu yu zu ix iy iz
 
 # heat capacity
@@ -703,46 +667,63 @@ timestep 0.005
 
 fix bal all balance 50000 1.0 shift xyz 10 1.1
 
-#dump dump all atom ${time_dump} ${path_to_dump}${output_filename}.lammpstrj.gz
 dump dumplast all atom ${time_lastdump} ${output_filename}.last.lammpstrj.gz
-#dump_modify dump scale no
+
+variable tmp equal "lx"
+variable L0 equal \${tmp}
+variable Amp equal ${amp_deform}
+variable AmpL equal \${tmp}*\${Amp}
+print "Initial Length, L0: \${L0}"
+print "Amplitude stain, Amp: \${Amp}"
+print "Amplitude Length : \${AmpL}"
+
+#fix def all deform 100000 x erate 0.00002 y volume z volume
+#fix def all deform 50000 x wiggle 0.05 5000 y volume z volume units lattice
+#fix def all deform 50000 x wiggle ${AmpL} 5000 units box
+END
+
+$str_deform = "fix def all deform ${time_deform}";
+
+foreach $dir ("x", "y", "z")
+{
+if($dir eq $dir_deform)
+ {
+ $str_deform = $str_deform . " ".$dir." wiggle \${AmpL} ${period_deform}";
+ }
+ else
+ {
+ $str_deform = $str_deform . " ".$dir." volume";
+ }
+}
+$str_deform = $str_deform . " units box\n";
+
+print SCRIPT $str_deform;
+
+print SCRIPT <<END;
+#fix press all press/berendsen y 0 0 5 z 0 0 5
+
+variable strain equal "(l${dir_deform} - v_L0)/v_L0"
+variable length equal "l${dir_deform}"
+
+thermo_style    custom step time temp ke pe evdwl c_yukpair c_ljpair ebond  etotal press v_strain pxx pyy pzz
+
+variable px equal "pxx"
+variable py equal "pyy"
+variable pz equal "pzz"
+
+#fix modul all ave/time 100000 500 100 v_strain pxx pyy pzz file module.txt
+#fix modul all ave/time 100000 100000 100 v_strain v_px v_py v_pz file module.txt
+#fix modul all ave/time 100000 100 1000 pxx pyy pzz  file module.txt
+#fix modul all ave/time 100 1 100 v_length v_strain v_px v_py v_pz file module.txt
+fix modul all ave/time ${step_modul} 1 ${step_modul} v_length v_strain v_px v_py v_pz file ${output_filename}_module.txt
+fix module all ave/time ${step_modul} ${num_modul} ${time_modul} v_length v_strain v_px v_py v_pz file ${output_filename}_module2.txt
+#fix modulee all ave/time 1 100000 100000 v_length v_strain v_px v_py v_pz file module3.txt
+
 
 run $time
-write_data ${output_filename}_e0.data
+write_data ${output_filename}_deform.data
 
 END
-
-for($ip=1;$ip<scalar(@epsAA);$ip++)
- {
-#my $time_out = $time_mult[$ip]*$time;
-my $time_out = $time;
-
- print SCRIPT <<END;
-pair_coeff 1 1 yukawa $epsAA[$ip]
-pair_coeff 1 3 yukawa $epsAA[$ip]
-pair_coeff 3 3 yukawa $epsAA[$ip]
-pair_coeff 1 2 yukawa $epsAB[$ip]
-pair_coeff 2 3 yukawa $epsAB[$ip]
-pair_coeff 2 2 yukawa $epsBB[$ip]
-
-run ${time_out}
-write_data ${output_filename}_e$ip.data
-END
- }
-
-#for($ip=scalar(@epsAA)-2;$ip>=0;$ip--)
-# {
-# print SCRIPT <<END;
-#pair_coeff 1 1 yukawa $epsAA[$ip]
-#pair_coeff 1 3 yukawa $epsAA[$ip]
-#pair_coeff 3 3 yukawa $epsAA[$ip]
-#pair_coeff 1 2 yukawa $epsAB[$ip]
-#pair_coeff 2 3 yukawa $epsAB[$ip]
-#pair_coeff 2 2 yukawa $epsBB[$ip]
-#
-#run $time
-#END
-# }
 
 close(SCRIPT);
 
