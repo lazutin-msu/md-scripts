@@ -755,7 +755,7 @@ cd $dirname
 #/home/lazutin/src/lammps-11Aug17/src/lmp_cuda -sf gpu  -in $scriptname 
 #/home/lazutin/src/lammps-16Mar18/src/lmp_cuda -sf gpu  -in $scriptname
 #/home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
-mpirun -np 8 /home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
+mpirun -np 4 /home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
 cd ..
 END
 #print SH "sbatch -n 1 -p gputest ompi lmp_linux -in $scriptname \n";
