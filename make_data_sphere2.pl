@@ -27,7 +27,6 @@ close(LOG);
 
 GetOptions (
 'datafile|f=s' => \$datafile,
-'density|d=f' => \$dens,
 'length|n=i' => \$N,
 'chains|c=i' => \$chains,
 'rsphere|a=f' => \$R_sphere,
@@ -43,7 +42,6 @@ if($help)
  {
  die("Usage make_data.pl options
   -f datafile initial configuration
-  -d density = 8
   -c chains = 10
   -n length = 50
   -a rsphere = 30
