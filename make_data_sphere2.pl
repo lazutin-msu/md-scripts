@@ -365,6 +365,12 @@ $time_cluster = $time /2;
 $step_cluster = 1000;
 $num_cluster = $time_cluster / $step_cluster;
 
+
+$time_rgyr = $time /2;
+$step_rgyr = 1000;
+$num_rgyr = $time_rgyr / $step_rgyr / 2;
+
+
 $set_temp = 1.0;
 
 $R_sphere_cutoff = 1.1224620 * $R_sphere;
@@ -405,7 +411,7 @@ group roots type 3 4
 group rest type 1 2
 group type2 type 2
 group type1 type 1 3
-
+group polymer type 1 2 3
 
 
 velocity roots zero linear
@@ -455,6 +461,7 @@ bond_coeff 1 30.0 1.5 0.0 1.0
 #region cut block ${xlo_bound} ${xhi_bound} ${ylo_bound} ${yhi_bound} INF INF side in units lattice
 #group gcut dynamic type1 region cut every ${time_dump}
 
+
 compute cluster1 type1 aggregate/atom 1.05
 compute cc1 type1 chunk/atom c_cluster1 compress yes
 compute size1 type1 property/chunk cc1 count
@@ -479,14 +486,20 @@ thermo_style    custom step time temp ke pe evdwl c_yukpair c_ljpair ebond  etot
 #compute gyrtensor all gyration/molecule tensor 
 #compute rgyr all gyration/molecule
 
-#compute chunkmol all chunk/atom molecule nchunk once ids once compress yes
-#compute rgyr all gyration/chunk chunkmol
+compute chunkmol polymer chunk/atom molecule nchunk once ids once compress yes
+compute rgyr polymer gyration/chunk chunkmol
+#compute rtens polymer gyration/chunk chunkmol tensor
 
 #fix outgyr all ave/time 1000 1 1000 c_gyrtensor mode vector file ${output_filename}_tensor.txt
-#fix outrgyr all ave/time 1000 1 1000 c_rgyr mode vector file ${output_filename}_rgyr.txt
+#fix outrgyr polymer ave/time ${step_rgyr} 1 ${step_rgyr} c_rgyr mode vector file ${output_filename}_rgyr.txt
+fix outrgyr2 polymer ave/time ${step_rgyr} ${num_rgyr} ${time_rgyr} c_rgyr mode vector file ${output_filename}_rgyr2.txt
+fix gyrhist2 polymer ave/histo ${step_rgyr} ${num_rgyr} ${time_rgyr} 5 25 200 c_gyr  mode vector ave one  beyond extra file ${output_filename}_gyrhist2.txt
+#fix outtens all ave/time ${step_rgyr} ${num_rgyr} ${time_rgyr} c_rtens mode vector file ${output_filename}_tensor2.txt
 
-#variable rgyravg equal ave(c_rgyr)
-#fix outrgyravg all ave/time 1000 1 1000 v_rgyravg  file ${output_filename}_rgyravg.txt
+
+variable rgyravg equal ave(c_rgyr)
+fix outrgyravg polymer ave/time 1000 1 1000 v_rgyravg  file ${output_filename}_rgyravg.txt
+fix outrgyravg polymer ave/time ${step_rgyr} ${num_rgyr} ${time_rgyr} v_rgyravg  file ${output_filename}_rgyravg2.txt
 
 #compute crdf all rdf ${step_energy} * *
 #fix outcrdf all ave/time ${step_energy} ${num_energy} ${time_energy} c_crdf[*] file ${output_filename}_rdf.txt mode vector
