@@ -493,7 +493,7 @@ compute rgyr polymer gyration/chunk chunkmol
 #fix outgyr all ave/time 1000 1 1000 c_gyrtensor mode vector file ${output_filename}_tensor.txt
 #fix outrgyr polymer ave/time ${step_rgyr} 1 ${step_rgyr} c_rgyr mode vector file ${output_filename}_rgyr.txt
 fix outrgyr2 polymer ave/time ${step_rgyr} ${num_rgyr} ${time_rgyr} c_rgyr mode vector file ${output_filename}_rgyr2.txt
-fix gyrhist2 polymer ave/histo ${step_rgyr} ${num_rgyr} ${time_rgyr} 5 25 200 c_gyr  mode vector ave one  beyond extra file ${output_filename}_gyrhist2.txt
+fix gyrhist2 polymer ave/histo ${step_rgyr} ${num_rgyr} ${time_rgyr} 5 25 200 c_rgyr  mode vector ave one  beyond extra file ${output_filename}_gyrhist2.txt
 #fix outtens all ave/time ${step_rgyr} ${num_rgyr} ${time_rgyr} c_rtens mode vector file ${output_filename}_tensor2.txt
 
 
