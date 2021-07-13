@@ -499,7 +499,7 @@ fix gyrhist2 polymer ave/histo ${step_rgyr} ${num_rgyr} ${time_rgyr} 5 25 200 c_
 
 variable rgyravg equal ave(c_rgyr)
 fix outrgyravg polymer ave/time 1000 1 1000 v_rgyravg  file ${output_filename}_rgyravg.txt
-fix outrgyravg polymer ave/time ${step_rgyr} ${num_rgyr} ${time_rgyr} v_rgyravg  file ${output_filename}_rgyravg2.txt
+fix outrgyravg2 polymer ave/time ${step_rgyr} ${num_rgyr} ${time_rgyr} v_rgyravg  file ${output_filename}_rgyravg2.txt
 
 #compute crdf all rdf ${step_energy} * *
 #fix outcrdf all ave/time ${step_energy} ${num_energy} ${time_energy} c_crdf[*] file ${output_filename}_rdf.txt mode vector
