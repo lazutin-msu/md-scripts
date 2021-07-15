@@ -15,7 +15,8 @@ GetOptions ('infile|f=s' => \$in_file,
 'ycol|y=s' => \$y_col,
 'every|e=i' => \$every,
 'nmol|n=i' => \$nmol,
-'npart|p=i' => \$Npart,
+'npart=i' => \$Npart,
+'npoly|p=i' => \$Npoly,
 'help|h' => \$help);
 if($help)
  {
@@ -26,6 +27,8 @@ if($help)
   -y ycol = density/number
   -e every = read only every x-th step
   -n nmol = number of monomers in particle
+  --npart = 
+  -p npoly = polymerization degree
   -h help\n");
  }
 
@@ -179,14 +182,41 @@ for($i=0;$i<$num/$nmol;$i++)
 }
 else
 {
-for($i=0;$i<$num;$i++)
+if(!defined($Npoly))
  {
- print OUT $data[0][$i][$x_num];
- for($a=0;$a<$n;$a++)
+  for($i=0;$i<$num;$i++)
+  {
+  print OUT $data[0][$i][$x_num];
+  for($a=0;$a<$n;$a++)
    {
    print OUT " ".$data[$a][$i][$y_num];
    }
- print OUT "\n";
+  print OUT "\n";
+  }
  }
-}
+ else
+ {
+  for($i=0;$i<$num;$i++)
+  {
+  my $myx = int($data[0][$i][$x_num]);
+  if(($myx!=0)&&($myx%$Npoly==0))
+   {
+   print OUT  $myx/$Npoly;
+   for($a=0;$a<$n;$a++)
+    {
+    print OUT " ".$data[$a][$i][$y_num];
+    }
+   print OUT "\n";
+   }
+   else
+   {
+   if($data[$a][$i][$y_num]!=0)
+    {
+    die "non zero y in timestep $step[$a] clustersize $data[0][$i][$x_num] y $data[$a][$i][$y_num] \n";
+    }   
+   }
+  } # for i
+ } # defined Npoly
+} # no nmol
 close(OUT);
+
