@@ -6,22 +6,12 @@ use Getopt::Long;
 #use Cwd qw(abs_path);
 use Cwd;
 
-@cutoffs = (0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0, 4.2, 4.4, 4.6, 4.8, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.5, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100);
-$Ncutoffs = scalar(@cutoffs);
-#$outdir = "/home/lazutin/NAS-Personal/structure_factor/";
-#$outdir = "/home/lazutin/NAS-Personal/structure_factor/l1_BB_change_pot/";
-#$outdir = "/home/lazutin/NAS-Personal/structure_factor/size_c20_more/";
-$outdir = "/home/lazutin/NAS-Personal/structure_factor/l1_BB_change_pot_newsf2/";
-$shfile = "do_sf.sh";
 $logfile = "perl.log";
-$exe_file = "/home/lazutin/scripts/c/diff3dp-cuda4-my2";
 $gpu_num = 0;
 #$step_step = 400000;
 $step_step = 100000;
 #$step_total = 26;
 $step_total = 51;
-
-$clu_name = "c_cluster2";
 
 $outlog = getcwd.">".$0;
 for($i=0;$i<scalar(@ARGV);$i++)
@@ -58,11 +48,6 @@ if(!col_name)
  die "no column name defined";
  }
 
-if(!(substr($outdir,-1) eq "/"))
- {
- $outdir = $outdir . "/";
- }
-
 open(LOG, ">>${logfile}") or die "Cannot open ${logfile} : $!";
 print LOG $outlog;
 close(LOG);
@@ -79,11 +64,6 @@ if(!$data_file) {
 if(!$outfile)
  {
  $outfile = $in_file."_r2.dat";
- }
-
-if(!$out_type)
- {
- $out_type = 2;
  }
 
 for($i=0;$i<$step_total;$i++)
@@ -333,11 +313,8 @@ print $step."\n";
 
   defined($column_index{'id'}) || die "no id ";
   defined($column_index{'type'}) || die "no type ";
-#  defined($column_index{$clu_name}) || die "no clu name ";
   defined($column_index{'mol'}) || die "no mol ";
   defined($column_index{$col_name}) || die "no col found ";
-#  defined($column_index{'c_clust_z'.$slice}) || die "no c_clust_z${slice} ";
-#  defined($column_index{'c_cluster1'}) || die "no c_cluster1 ";
 if(defined($column_index{'xu'}))
 {
   defined($column_index{'xu'}) || die "no xu ";
@@ -392,20 +369,11 @@ $rh = 0.0;
   $str=<INPUT>;
   $str =~ s/^\s+//;
   @arr = split /\s+/, $str;
-#  (($iatom+1) == $arr[0]) or die "atom order is wrong in $in_file timestep $step";
-#  $atom_id[$iatom]
-#  $x[$arr[0]] = $arr[2];
-#  $y[$arr[0]] = $arr[3];
-#  $z[$arr[0]] = $arr[4];
 
-#  $x[$arr[0]] = $arr[3];
-#  $y[$arr[0]] = $arr[4];
-#  $z[$arr[0]] = $arr[5];
   $atom2_mol[$arr[$column_index{'id'}]]  = $arr[$column_index{'mol'}];
   $atom2_type[$arr[$column_index{'id'}]] = $arr[$column_index{'type'}];
   $atom2_newmol[$arr[$column_index{'id'}]] = $arr[$column_index{$col_name}];
 
-#  $atom2_clu[$arr[$column_index{'id'}]] = $arr[$column_index{$clu_name}];
 if($coord_flag eq "u")
  {
   $x[$arr[$column_index{'id'}]] = $arr[$column_index{'xu'}];
