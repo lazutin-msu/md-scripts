@@ -44,6 +44,8 @@ GetOptions (
 'amp_deform=f' => \$amp_deform,
 'dir_deform=s' => \$dir_deform,
 'eps|e=f{3}' => \@epsilon,
+'ncpu=i' => \$Ncpu,
+'np=i' => \$num_np,
 'help|h' => \$help);
 if($help)
  {
@@ -72,6 +74,7 @@ if(!$time_deform) {$time_deform = 100;}
 if(!$period_deform) {$period_deform = 5000;}
 if(!$amp_deform) {$amp_deform = 0.05;}
 if(($dir_deform ne "x")&&($dir_deform ne "y")&&($dir_deform ne "z")) {$dir_deform = "x";}
+if(($num_np!=1)&&($num_np!=2)&&($num_np!=4)&&($num_np!=8)) {die "--np $num_np : should be 1, 2, 4, or 8\n";}
 
 print STDERR "eps = ".$epsilon[0]." ".$epsilon[1]." ".$epsilon[2]."\n";
 
@@ -736,7 +739,20 @@ cd $dirname
 #/home/lazutin/src/lammps-11Aug17/src/lmp_cuda -sf gpu  -in $scriptname 
 #/home/lazutin/src/lammps-16Mar18/src/lmp_cuda -sf gpu  -in $scriptname
 #/home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
-mpirun -np 4 /home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
+END
+if($num_np==1)
+{
+print SH <<END;
+/home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
+END
+}
+else
+{
+print SH <<END;
+mpirun -np $num_np /home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
+END
+}
+print SH <<END;
 cd ..
 END
 #print SH "sbatch -n 1 -p gputest ompi lmp_linux -in $scriptname \n";
