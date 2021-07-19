@@ -7,7 +7,7 @@ use POSIX;
 $dens = 8;
 $N = 50;
 $chains = 10; #10x10
-$time = 2000000;
+$time = 10000000;
 $repeat = 1;
 $R_sphere = 30;
 
@@ -40,8 +40,7 @@ GetOptions (
 'x|dx=f' => \$spheres_dx,
 'pressure=f' => \$pressure,
 'time_deform=i' => \$time_deform,
-'period_deform=i' => \$period_deform,
-'amp_deform=f' => \$amp_deform,
+'rate_deform' => \$rate_deform,
 'dir_deform=s' => \$dir_deform,
 'eps|e=f{3}' => \@epsilon,
 'ncpu=i' => \$Ncpu,
@@ -56,25 +55,24 @@ if($help)
   -n length = 50
   -a rsphere = 30
   -r repeat = 1
-  -t time = 2000000
+  -t time = 10000000
 #  -s step 
   -p spheres
   -x dx spheres dx
   -g gpuid
   --pressure
-  --time_deform=100
-  --period_deform=5000 (tau)
-  --amp_deform=0.05 (x l_box)
+  --time_deform=100000
+  --rate_deform=0.00002 
   --dir_deform=x (x, y or z)
   -e --eps epsAA epsAB epsBB
   -h help\n");
  }
 
-if(!$time_deform) {$time_deform = 100;}
-if(!$period_deform) {$period_deform = 5000;}
-if(!$amp_deform) {$amp_deform = 0.05;}
+if(!$time_deform) {$time_deform = 100000;}
+#if(!$period_deform) {$period_deform = 5000;}
 if(($dir_deform ne "x")&&($dir_deform ne "y")&&($dir_deform ne "z")) {$dir_deform = "x";}
 if(($num_np!=1)&&($num_np!=2)&&($num_np!=4)&&($num_np!=8)) {die "--np $num_np : should be 1, 2, 4, or 8\n";}
+if(!$rate_deform){$rate_deform = 0.00002;}
 
 print STDERR "eps = ".$epsilon[0]." ".$epsilon[1]." ".$epsilon[2]."\n";
 
@@ -691,7 +689,7 @@ foreach $dir ("x", "y", "z")
 {
 if($dir eq $dir_deform)
  {
- $str_deform = $str_deform . " ".$dir." wiggle \${AmpL} ${period_deform}";
+ $str_deform = $str_deform . " ".$dir." erate ${rate_deform}";
  }
  else
  {
