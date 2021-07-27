@@ -124,15 +124,15 @@ $is_datafile = 1;
 else
 {
 $is_datafile = 0;
-$datafile = sprintf "data_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f",$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2];
+$datafile = sprintf "data_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_eps0_%.2f_%.2f_%.2f",$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$epsilon0[0],$epsilon0[1],$epsilon0[2];
 }
 
-$dirname = sprintf "c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_n%d",$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$Ndir;
+$dirname = sprintf "c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_eps0_%.2f_%.2f_%.2f_n%d",$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$epsilon0[0],$epsilon0[1],$epsilon0[2],$Ndir;
 $scriptname = "script";
 $shellname_all = "run.sh";
 #$shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
 $shellname = sprintf "run_cpu%d.sh",$cpuid;  #look at run.sh too
-$output_filename = sprintf "c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_n%d",$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$Ndir;
+$output_filename = sprintf "c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_eps0_%.2f_%.2f_%.2f_n%d",$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$epsilon0[0],$epsilon0[1],$epsilon0[2],$Ndir;
 
 if( -d $dirname)
  {
@@ -140,9 +140,9 @@ if( -d $dirname)
  while(-d $dirname)
   {
   $Ndir++;
-  $dirname = sprintf "c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_n%d",$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$Ndir;
+  $dirname = sprintf "c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_eps0_%.2f_%.2f_%.2f_n%d",$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$epsilon0[0],$epsilon0[1],$epsilon0[2],$Ndir;
 #  $shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
-  $output_filename = sprintf "c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_n%d",$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$Ndir;;
+  $output_filename = sprintf "c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_eps0_%.2f_%.2f_%.2f_n%d",$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$epsilon0[0],$epsilon0[1],$epsilon0[2],$Ndir;
   }
  }
 
