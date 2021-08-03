@@ -17,6 +17,7 @@ GetOptions ('infile|f=s' => \$in_file,
 'nmol|n=i' => \$nmol,
 'npart=i' => \$Npart,
 'npoly|p=i' => \$Npoly,
+'particles+' => \$is_particles,
 'help|h' => \$help);
 if($help)
  {
@@ -29,6 +30,7 @@ if($help)
   -n nmol = number of monomers in particle
   --npart = 
   -p npoly = polymerization degree
+  --particles nanoparticles were counted - substract
   -h help\n");
  }
 
@@ -201,6 +203,7 @@ if(!defined($Npoly))
   for($i=0;$i<$num;$i++)
   {
   my $myx = int($data[0][$i][$x_num]);
+
   
   
   if(($myx!=0)&&($myx%$Npoly==0))
@@ -217,10 +220,22 @@ if(!defined($Npoly))
    }
    else
    {
+    for($a=0;$a<$n;$a++)
+    {
+   
    if($data[$a][$i][$y_num]!=0)
     {
-    die "non zero y in timestep $step[$a] clustersize $data[0][$i][$x_num] y $data[$a][$i][$y_num] \n";
+    if(($is_particles>0)&&($myx==1))
+    {
+    }
+    else
+    {
+    die "non zero y in timestep $step[$a] clustersize $data[0][$i][$x_num] myx $myx y $data[$a][$i][$y_num] \n";
+    }
     }   
+
+    }
+
    }
   } # for i
  } # defined Npoly
