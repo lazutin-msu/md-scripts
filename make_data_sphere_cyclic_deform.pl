@@ -12,7 +12,7 @@ $repeat = 1;
 $R_sphere = 30;
 
 $Ngpu = 1;
-$Ncpu = 6;
+$Ncpu = 4;
 #$path_to_dump = "/home/lazutin/NAS-Personal/lazutin/l1_BB_change_pot_re";
 $path_to_dump = "";
 $r_aggr = 1.3;
@@ -46,6 +46,7 @@ GetOptions (
 'eps|e=f{3}' => \@epsilon,
 'ncpu=i' => \$Ncpu,
 'np=i' => \$num_np,
+'prefix=s' => \$prefix,
 'help|h' => \$help);
 if($help)
  {
@@ -67,6 +68,7 @@ if($help)
   --amp_deform=0.05 (x l_box)
   --dir_deform=x (x, y or z)
   -e --eps epsAA epsAB epsBB
+  --prefix prefix to output files
   -h help\n");
  }
 
@@ -136,7 +138,7 @@ printf "R_sphere = %f\nchains = %d\nlength = %d \ngpuid= %d\n",$R_sphere,$chains
 
 $Ndir = 1;
 
-$desc = sprintf "brush_p%d_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2];
+$desc = sprintf "brush_p%d_c%d_R%.1f_N%d_eps_%.2f_%.2f_%.2f",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2];
 
 if($datafile)
 {
@@ -145,15 +147,15 @@ $is_datafile = 1;
 else
 {
 $is_datafile = 0;
-$datafile = sprintf "data_p%d_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2];
+$datafile = sprintf "data_%sp%d_c%d_R%.1f_N%d_eps_%.2f_%.2f_%.2f",$prefix,$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2];
 }
 
-$dirname = sprintf "p%d_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_period%d_amp_%.3f_n%d",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$period_deform,$amp_deform,$Ndir;
+$dirname = sprintf "%sp%d_c%d_R%.1f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_period%d_amp_%.3f_n%d",$prefix,$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$period_deform,$amp_deform,$Ndir;
 $scriptname = "script";
 $shellname_all = "run.sh";
 #$shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
 $shellname = sprintf "run_cpu%d.sh",$cpuid;  #look at run.sh too
-$output_filename = sprintf "p%d_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_period%d_amp_%.3f_n%d",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$period_deform,$amp_deform,$Ndir;
+$output_filename = sprintf "%sp%d_c%d_R%.1f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_period%d_amp_%.3f_n%d",$prefix,$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$period_deform,$amp_deform,$Ndir;
 
 if( -d $dirname)
  {
@@ -161,9 +163,9 @@ if( -d $dirname)
  while(-d $dirname)
   {
   $Ndir++;
-  $dirname = sprintf "p%d_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_period%d_amp_%.3f_n%d",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$period_deform,$amp_deform,$Ndir;
+  $dirname = sprintf "%sp%d_c%d_R%.1f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_period%d_amp_%.3f_n%d",$prefix,$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$period_deform,$amp_deform,$Ndir;
 #  $shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
-  $output_filename = sprintf "p%d_c%d_R%f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_period%d_amp_%.3f_n%d",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$period_deform,$amp_deform,$Ndir;
+  $output_filename = sprintf "%sp%d_c%d_R%.1f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_period%d_amp_%.3f_n%d",$prefix,$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$period_deform,$amp_deform,$Ndir;
   }
  }
 
