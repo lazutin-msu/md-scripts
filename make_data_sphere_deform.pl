@@ -148,12 +148,12 @@ $is_datafile = 0;
 $datafile = sprintf "data_%sp%d_c%d_R%.1f_N%d_eps_%.2f_%.2f_%.2f",$prefix,$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2];
 }
 
-$dirname = sprintf "%sp%d_c%d_R%.1f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_period%d_amp_%.3f_n%d",$prefix,$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$period_deform,$amp_deform,$Ndir;
+$dirname = sprintf "%sp%d_c%d_R%.1f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_rate_%.3e_n%d",$prefix,$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$rate_deform,$Ndir;
 $scriptname = "script";
 $shellname_all = "run.sh";
 #$shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
 $shellname = sprintf "run_cpu%d.sh",$cpuid;  #look at run.sh too
-$output_filename = sprintf "%sp%d_c%d_R%.1f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_period%d_amp_%.3f_n%d",$prefix,$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$period_deform,$amp_deform,$Ndir;
+$output_filename = sprintf "%sp%d_c%d_R%.1f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_rate_%.3e_n%d",$prefix,$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$rate_deform,$Ndir;
 
 if( -d $dirname)
  {
@@ -161,9 +161,9 @@ if( -d $dirname)
  while(-d $dirname)
   {
   $Ndir++;
-  $dirname = sprintf "%sp%d_c%d_R%.1f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_period%d_amp_%.3f_n%d",$prefix,$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$period_deform,$amp_deform,$Ndir;
+  $dirname = sprintf "%sp%d_c%d_R%.1f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_rate_%.3e_n%d",$prefix,$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$rate_deform,$Ndir;
 #  $shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
-  $output_filename = sprintf "%sp%d_c%d_R%.1f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_period%d_amp_%.3f_n%d",$prefix,$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$period_deform,$amp_deform,$Ndir;
+  $output_filename = sprintf "%sp%d_c%d_R%.1f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_rate_%.3e_n%d",$prefix,$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$rate_deform,$Ndir;
   }
  }
 
@@ -674,11 +674,11 @@ dump dumplast all atom ${time_lastdump} ${output_filename}.last.lammpstrj.gz
 
 variable tmp equal "lx"
 variable L0 equal \${tmp}
-variable Amp equal ${amp_deform}
-variable AmpL equal \${tmp}*\${Amp}
+#variable Amp equal ${amp_deform}
+#variable AmpL equal \${tmp}*\${Amp}
 print "Initial Length, L0: \${L0}"
-print "Amplitude stain, Amp: \${Amp}"
-print "Amplitude Length : \${AmpL}"
+#print "Amplitude stain, Amp: \${Amp}"
+#print "Amplitude Length : \${AmpL}"
 
 #fix def all deform 100000 x erate 0.00002 y volume z volume
 #fix def all deform 50000 x wiggle 0.05 5000 y volume z volume units lattice
