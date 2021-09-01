@@ -40,7 +40,7 @@ GetOptions (
 'x|dx=f' => \$spheres_dx,
 'pressure=f' => \$pressure,
 'time_deform=i' => \$time_deform,
-'rate_deform' => \$rate_deform,
+'rate_deform=f' => \$rate_deform,
 'dir_deform=s' => \$dir_deform,
 'eps|e=f{3}' => \@epsilon,
 'ncpu=i' => \$Ncpu,
