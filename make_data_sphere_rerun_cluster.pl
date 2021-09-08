@@ -31,7 +31,7 @@ GetOptions (
 #'density|d=f' => \$dens,
 #'length|n=i' => \$N,
 #'chains|c=i' => \$chains,
-#'rsphere|a=f' => \$R_sphere,
+'rsphere|a=f' => \$R_sphere,
 'dump|d=s' => \$dumpfile,
 'repeat|r=i' => \$repeat,
 #'time|t=i' => \$time,
@@ -56,7 +56,7 @@ if($help)
 #  -d density = 8
 #  -c chains = 10
 #  -n length = 50
-#  -a rsphere = 30
+  -a rsphere = 30
   -r repeat = 1
 #  -t time = 10000000
 #  -s step 
@@ -458,7 +458,8 @@ suffix gpu
 units lj
 atom_style bond
 neighbor        1.5 bin
-neigh_modify    every 5 delay 5 check yes
+neigh_modify    every 5 delay 5 check yes 
+#one 100000 page 1000000
 
 pair_style hybrid/overlay yukawa 1.2 4.0 lj/cut 1.1224620 lj/expand 1.1224620
 bond_style fene 
@@ -467,22 +468,6 @@ boundary p p p
 special_bonds lj/coul 1.0 1.0 1.0
 
 read_data $datafile
-
-END
-
-if(!datafile)
-{
-print SCRIPT <<END;
-velocity all create ${set_temp} $seed2
-END
-}
-else
-{
-print SCRIPT <<END;
-#velocity all create ${set_temp} $seed2
-END
-}
-print SCRIPT <<END;
 
 pair_coeff 1*3 1*3 lj/cut 1.0 1.0 1.1224620
 pair_coeff * 4 lj/expand 1.0 1.0 ${R_sphere2} 1.1224620
@@ -502,195 +487,6 @@ group rest type 1 2
 group type2 type 2
 group type1 type 1 3
 
-
-
-#velocity roots zero linear
-
-#fix root roots move linear 0 0 0 
-
-fix lan rest langevin ${set_temp} ${set_temp} 100.0 $seed
-fix finve rest nve 
-
-END
-
-#for($igroup=0;$igroup<$spheres;$igroup++)
-#{
-#print SCRIPT "group sphere".$igroup." id ".($natoms * $igroup + 1).":".($natoms * ($igroup + 1))."\n";
-#}
-#for($igroup=0;$igroup<$spheres;$igroup++)
-#{
-#print SCRIPT "group core".$igroup." intersect roots sphere".$igroup."\n";
-#}
-#print SCRIPT "fix firig roots rigid/nve group ".$spheres;
-
-open(CORE,">".$dirname."coreid.txt");
-
-print CORE $totalatoms."\n";
-
-for($iatom=1;$iatom<=$totalatoms;$iatom++)
- {
-# if($coreid[$iatom]>0)
-#  {
-  printf CORE "%d %d\n", $iatom,$coreid[$iatom];
-#  }
- }
-
-close(CORE);
-
-open(PART,">".$dirname."partnum.txt");
-
-print PART $totalatoms."\n";
-
-for($iatom=1;$iatom<=$totalatoms;$iatom++)
- {
-# if($coreid[$iatom]>0)
-#  {
-  printf PART "%d %d\n", $iatom,$partnum[$iatom];
-#  }
- }
-
-close(PART);
-
-
-print SCRIPT "variable coreid atomfile coreid.txt\n";
-
-print SCRIPT "fix firig roots rigid/nve custom v_coreid langevin ${set_temp} ${set_temp} 100.0 $seed \n";
-
-#for($igroup=0;$igroup<$spheres;$igroup++)
-#{
-#print SCRIPT " core".$igroup;
-#}
-#print SCRIPT "\n";
-
-print SCRIPT <<END;
-#fix lanri roots langevin ${set_temp} ${set_temp} 100.0 $seed
-
-#run 0
-
-
-#min_style quickmin 
-#timestep 0.0001
-
-#dump dumpmin all atom 1 ${output_filename}.minimize.lammpstrj.gz
-
-#minimize 0.0 1.0 1000 1000
-
-END
-
-if(!$is_datafile)
-{
-print SCRIPT <<END;
-#timestep 0.002
-
-#dump dump_cluster3 all custom 10000 ${output_filename}.rel2.dump.gz id type mol xu yu zu ix iy iz
-
-#run 100000
-#timestep 0.003
-#run  50000
-
-#fix pres all press/berendsen iso 10.0 10.0 100.0
-
-#fix pres all press/berendsen iso 100.0 100.0 100.0
-fix pres all press/berendsen iso ${pressure} ${pressure} 100.0
-
-thermo 1000
-thermo_style    custom step time temp ke pe evdwl ebond etotal press density lx vol
-
-run  300000
-
-unfix pres
-
-undump dump_cluster3
-
-reset_timestep 0
-END
-}
-
-print SCRIPT <<END;
-
-
-variable partnum atomfile partnum.txt
-compute part all chunk/atom v_partnum
-compute msd all msd/chunk part 
-fix fixmsd all ave/time ${step_msd} 1 ${step_msd} c_msd[1] file msd1.txt mode vector 
-fix fixmsd2 all ave/time ${step_msd} 1 ${step_msd} c_msd[2] file msd2.txt mode vector 
-fix fixmsd3 all ave/time ${step_msd} 1 ${step_msd} c_msd[3] file msd3.txt mode vector 
-fix fixmsd4 all ave/time ${step_msd} 1 ${step_msd} c_msd[4] file msd4.txt mode vector 
-
-compute gyr all gyration/chunk part
-fix fixgyr all ave/time ${step_rgyr} 1 ${step_rgyr} c_gyr file gyr1.txt mode vector
-fix fixgyr2 all ave/time ${step_rgyr} ${num_rgyr} ${time_rgyr} c_gyr file gyr2.txt mode vector
-#fix gyrhist all ave/histo 1000 1 1000 0 50 500 c_gyr  mode vector ave one  beyond end file gyrhist.txt
-#fix gyrhist2 all ave/histo 1000 500 1000000 0 50 500 c_gyr  mode vector ave one  beyond end file gyrhist2.txt
-
-compute cluster3 all aggregate/atom 1.0
-compute cc3 all chunk/atom c_cluster3 compress yes
-compute size3 all property/chunk cc3 count
-#fix cluhist3 all ave/histo 1000 1 1000 0 100000 100000 c_size3 mode vector ave one beyond ignore file newcluster3.txt
-fix cluhist3b all ave/histo ${step_clust} ${num_clust} ${time_clust} 0 100000 100000 c_size3 mode vector ave one beyond ignore file newcluster3b.txt
-
-compute yukpair all pair yukawa
-compute ljpair all pair lj/cut
-#thermo 100
-#thermo_style    custom step time temp ke pe evdwl c_yukpair c_ljpair ebond  etotal press lx ly lz pxx pyy pzz vol density
-
-compute binsphere all chunk/atom bin/sphere 0 0 0 ${R_sphere} ${hi_bound} 1000 units box
-compute binspherea type1 chunk/atom bin/sphere 0 0 0 ${R_sphere} ${hi_bound} 1000 units box
-compute binsphereb type2 chunk/atom bin/sphere 0 0 0 ${R_sphere} ${hi_bound} 1000 units box
-#fix spatall all ave/chunk ${step_energy} ${num_energy} ${time_energy} binsphere density/number file ${output_filename}_spat_all.txt ave one
-
-#fix spat all ave/chunk ${step_energy} ${num_energy} ${time} binsphere density/number file ${output_filename}_spat.txt ave one
-#fix spata type1 ave/chunk ${step_energy} ${num_energy} ${time} binspherea density/number file ${output_filename}_spatA.txt ave one
-#fix spatb type2 ave/chunk ${step_energy} ${num_energy} ${time} binsphereb density/number file ${output_filename}_spatB.txt ave one
-
-#dump dump_cluster all custom ${time_dump} ${path_to_dump}${output_filename}.dump.gz id type mol xu yu zu ix iy iz
-
-# heat capacity
-compute peall all pe 
-compute keall all ke 
-variable natoms equal atoms
-variable settemp equal ${set_temp}
-variable enall equal c_peall+c_keall
-variable pe2 equal c_peall*c_peall
-variable en2 equal v_enall*v_enall
-#fix ener all ave/time ${step_energy} ${num_energy} ${time_energy} c_peall v_pe2 v_enall v_en2 file  ${output_filename}_energy.txt ave one
-#fix enout all ave/time ${step_energy} 1 ${step_energy} c_peall c_keall v_enall file  ${output_filename}_raw_en.txt ave one
-
-
-END
-
-print SCRIPT <<END;
-fix ener1 all ave/time ${step_energy} ${num_energy} ${time_energy} c_peall v_pe2 v_enall v_en2 ave one
-variable peavg1 equal f_ener1[1]/v_natoms
-variable cvp1 equal sqrt(f_ener1[2]-f_ener1[1]*f_ener1[1])/v_natoms/(v_settemp*v_settemp)
-variable enavg1 equal f_ener1[3]/v_natoms
-variable cve1 equal sqrt(f_ener1[4]-f_ener1[3]*f_ener1[3])/v_natoms/(v_settemp*v_settemp)
-END
-
-print SCRIPT "#fix eneravg all ave/time ${time_energy} 1 ${time_energy} v_peavg1 v_cvp1 v_enavg1 v_cve1 file ${output_filename}_energy.txt ave one\n";
-
-print SCRIPT <<END;
-
-timestep 0.005
-
-#fix bal all balance 50000 1.0 shift xyz 10 1.1
-
-#dump dumplast all atom ${time_lastdump} ${output_filename}.last.lammpstrj.gz
-
-#thermo_style    custom step time temp ke pe evdwl c_yukpair c_ljpair ebond  etotal press v_strain pxx pyy pzz
-
-variable px equal "pxx"
-variable py equal "pyy"
-variable pz equal "pzz"
-
-#fix modul all ave/time 100000 500 100 v_strain pxx pyy pzz file module.txt
-#fix modul all ave/time 100000 100000 100 v_strain v_px v_py v_pz file module.txt
-#fix modul all ave/time 100000 100 1000 pxx pyy pzz  file module.txt
-#fix modul all ave/time 100 1 100 v_length v_strain v_px v_py v_pz file module.txt
-#fix modul all ave/time ${step_modul} 1 ${step_modul} v_length v_strain v_px v_py v_pz file ${output_filename}_module.txt
-#fix module all ave/time ${step_modul} ${num_modul} ${time_modul} v_length v_strain v_px v_py v_pz file ${output_filename}_module2.txt
-#fix modulee all ave/time 1 100000 100000 v_length v_strain v_px v_py v_pz file module3.txt
-
 compute clusterA type1 aggregate/atom 1.05
 compute ccA type1 chunk/atom c_clusterA compress yes
 compute sizeA type1 property/chunk ccA count
@@ -707,9 +503,6 @@ compute sizeall all property/chunk ccall count
 fix cluhistall all ave/histo 1000000 1 1000000 0 10001 10001 c_sizeall mode vector ave one beyond ignore file ${output_filename}_cluall.txt
 
 rerun ../${dumpfile}  dump x y z wrapped no scaled no
-
-#run $time
-#write_data ${output_filename}_deform.data
 
 END
 
