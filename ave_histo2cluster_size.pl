@@ -190,9 +190,15 @@ if(!defined($Npoly))
  {
   for($i=0;$i<$num;$i++)
   {
+  my $myx = int($data[0][$i][$x_num]);
+
 #  print OUT $data[0][$i][$x_num];
   for($a=0;$a<$n;$a++)
    {
+    $sum_N2[$a]    += $data[$a][$i][$y_num] * $myx * $myx;
+    $sum_N[$a]    += $data[$a][$i][$y_num] * $myx;
+    $sum_norm[$a] += $data[$a][$i][$y_num] ;
+
 #   print OUT " ".$data[$a][$i][$y_num];
    }
 #  print OUT "\n";
