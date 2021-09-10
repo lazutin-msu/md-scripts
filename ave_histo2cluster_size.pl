@@ -250,6 +250,10 @@ if(!defined($Npoly))
 print OUT "Step Nnum Nweight K\n";
 for($a=0;$a<$n;$a++)
  {
+ if($sum_norm[$a]==0)
+  {
+  print "sum_norm==0  infile $in_file step $step[$a] \n ";
+  }
 printf OUT "%d %g %g %g\n", $step[$a], $sum_N[$a]/$sum_norm[$a], $sum_N2[$a]/$sum_N[$a], ($sum_N2[$a]/$sum_N[$a])/($sum_N[$a]/$sum_norm[$a]);
  }
 
