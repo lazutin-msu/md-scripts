@@ -37,6 +37,7 @@ GetOptions (
 #'time|t=i' => \$time,
 #'step|s=f' => \$step,
 'g|gpuid=i' => \$gpu_num,
+'m|max_cluster=i' => \$max_cluster,
 #'p|spheres=i' => \$spheres,
 #'x|dx=f' => \$spheres_dx,
 #'pressure=f' => \$pressure,
@@ -63,6 +64,7 @@ if($help)
 #  -p spheres
 #  -x dx spheres dx
   -g gpuid
+  -m max_cluster
 #  --pressure
 #  --time_deform=100000
 #  --rate_deform=0.00002 
@@ -490,17 +492,17 @@ group type1 type 1 3
 compute clusterA type1 aggregate/atom 1.05
 compute ccA type1 chunk/atom c_clusterA compress yes
 compute sizeA type1 property/chunk ccA count
-fix cluhistA type1 ave/histo 1000000 1 1000000 0 10001 10001 c_sizeA mode vector ave one beyond ignore file ${output_filename}_cluA.txt
+fix cluhistA type1 ave/histo 50000 10 1000000 0 ${max_cluster} ${max_cluster} c_sizeA mode vector ave one beyond ignore file ${output_filename}_cluA.txt
 
 compute clusterB type2 aggregate/atom 1.05
 compute ccB type2 chunk/atom c_clusterB compress yes
 compute sizeB type2 property/chunk ccB count
-fix cluhistB type2 ave/histo 1000000 1 1000000 0 10001 10001 c_sizeB mode vector ave one beyond ignore file ${output_filename}_cluB.txt
+fix cluhistB type2 ave/histo 50000 10 1000000 0 ${max_cluster} ${max_cluster} c_sizeB mode vector ave one beyond ignore file ${output_filename}_cluB.txt
 
 compute clusterall all aggregate/atom 1.05
 compute ccall all chunk/atom c_clusterall compress yes
 compute sizeall all property/chunk ccall count
-fix cluhistall all ave/histo 1000000 1 1000000 0 10001 10001 c_sizeall mode vector ave one beyond ignore file ${output_filename}_cluall.txt
+fix cluhistall all ave/histo 50000 10 1000000 0 ${max_cluster} ${max_cluster} c_sizeall mode vector ave one beyond ignore file ${output_filename}_cluall.txt
 
 rerun ../${dumpfile}  dump x y z wrapped no scaled no
 
