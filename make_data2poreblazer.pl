@@ -29,6 +29,7 @@ close(LOG);
 GetOptions (
 'datafile|f=s' => \$datafile,
 'rsphere|a=f' => \$R_sphere,
+'grid|z=f' => \$grid_size,
 #'dump|d=s' => \$dumpfile,
 'repeat|r=i' => \$repeat,
 'g|gpuid=i' => \$gpu_num,
@@ -147,12 +148,12 @@ $is_datafile = 0;
 $datafile = sprintf "data_%sp%d_c%d_R%.1f_N%d_eps_%.2f_%.2f_%.2f",$prefix,$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2];
 }
 
-$dirname = sprintf "%seps_%.2f_%.2f_%.2f_cluster_n%d",$prefix,$epsilon[0],$epsilon[1],$epsilon[2],$Ndir;
+$dirname = sprintf "%scluster_n%d",$prefix,$Ndir;
 $scriptname = "script";
 $shellname_all = "run.sh";
 #$shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
 $shellname = sprintf "run_cpu%d.sh",$cpuid;  #look at run.sh too
-$output_filename = sprintf "%seps_%.2f_%.2f_%.2f_cluster_n%d",$prefix,$epsilon[0],$epsilon[1],$epsilon[2],$Ndir;
+$output_filename = sprintf "%scluster_n%d",$prefix,$Ndir;
 
 if( -d $dirname)
  {
@@ -161,11 +162,11 @@ if( -d $dirname)
   {
   $Ndir++;
 #  $dirname = sprintf "%sp%d_c%d_R%.1f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_rate_%.3e_n%d",$prefix,$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$rate_deform,$Ndir;
-  $dirname = sprintf "%seps_%.2f_%.2f_%.2f_cluster_n%d",$prefix,$epsilon[0],$epsilon[1],$epsilon[2],$Ndir;
+  $dirname = sprintf "%scluster_n%d",$prefix,$Ndir;
 
 #  $shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
 #  $output_filename = sprintf "%sp%d_c%d_R%.1f_N%d_eps_%.2f_%.2f_%.2f_deform_r%s_time%d_rate_%.3e_n%d",$prefix,$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2],$dir_deform,$time_deform,$rate_deform,$Ndir;
-  $output_filename = sprintf "%seps_%.2f_%.2f_%.2f_cluster_n%d",$prefix,$epsilon[0],$epsilon[1],$epsilon[2],$Ndir;
+  $output_filename = sprintf "%scluster_n%d",$prefix,$Ndir;
   }
  }
 
@@ -347,10 +348,10 @@ $seed = int(rand(9999999));
 open(DEF,">".$dirname."defaults.dat");
 print DEF <<END ;
 my.atoms
-1.00, 1.00, 1.0, 20.0
-2.00
+1.00, 1.00, 100.0, 20.0
+1.00
 500
-0.1
+$grid_size
 40.0, 0.25
 $seed
 0
@@ -367,7 +368,7 @@ print FF <<END ;
 A       1.000    1.0     1.0
 B       1.000    1.0     1.0
 C       1.000    1.0     1.0
-D       1.000    1.0     1.0
+D       ${diam}    1.0     1.0
 END
 close(FF);
 
@@ -381,7 +382,7 @@ open(SH,">>".$shellname);
 #print SH "nohup /usr/mount-opt/lammps/lmp_ubuntu_1Feb14 <$scriptname  &";
 print SH <<END;
 cd $dirname
-/home/lazutin/scripts/PoreBlazer/src/poreblazer.exe < ${output_filename}.dat > $output_filename.txt
+/home/lazutin/scripts/PoreBlazer/src/poreblazer.exe < ${output_filename}.dat > ${output_filename}.txt
 cd ..
 END
 close(SH);
