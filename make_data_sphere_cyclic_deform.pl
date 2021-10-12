@@ -769,6 +769,7 @@ for($icpu=0;$icpu<$Ncpu;$icpu++)
 $shellname1 = sprintf "run_cpu%d.sh",$icpu;  #look at init block too
 print SH <<END;
 nohup sh $shellname1 &
+sleep 10 
 END
 }
 close(SH);
