@@ -48,6 +48,7 @@ GetOptions (
 'ncpu=i' => \$Ncpu,
 'np=i' => \$num_np,
 'prefix=s' => \$prefix,
+'cut=f' => \$cut,
 'help|h' => \$help);
 if($help)
  {
@@ -71,6 +72,7 @@ if($help)
 #  --dir_deform=x (x, y or z)
   -e --eps epsAA epsAB epsBB
   --prefix prefix to output files
+  --cut default 1.05
   -h help\n");
  }
 
@@ -79,6 +81,7 @@ if(!$time_deform) {$time_deform = 100000;}
 if(($dir_deform ne "x")&&($dir_deform ne "y")&&($dir_deform ne "z")) {$dir_deform = "x";}
 if(($num_np!=1)&&($num_np!=2)&&($num_np!=4)&&($num_np!=8)) {die "--np $num_np : should be 1, 2, 4, or 8\n";}
 if(!$rate_deform){$rate_deform = 0.00002;}
+if(!$cut){$cut = 1.05}
 
 print STDERR "eps = ".$epsilon[0]." ".$epsilon[1]." ".$epsilon[2]."\n";
 
@@ -489,20 +492,23 @@ group rest type 1 2
 group type2 type 2
 group type1 type 1 3
 
-compute clusterA type1 aggregate/atom 1.05
+compute clusterA type1 aggregate/atom ${cut}
 compute ccA type1 chunk/atom c_clusterA compress yes
 compute sizeA type1 property/chunk ccA count
 fix cluhistA type1 ave/histo 50000 10 1000000 0 ${max_cluster} ${max_cluster} c_sizeA mode vector ave one beyond ignore file ${output_filename}_cluA.txt
+#fix cluhistA type1 ave/histo 50000 1 50000 0 ${max_cluster} ${max_cluster} c_sizeA mode vector ave one beyond ignore file ${output_filename}_cluA.txt
 
-compute clusterB type2 aggregate/atom 1.05
+compute clusterB type2 aggregate/atom ${cut}
 compute ccB type2 chunk/atom c_clusterB compress yes
 compute sizeB type2 property/chunk ccB count
 fix cluhistB type2 ave/histo 50000 10 1000000 0 ${max_cluster} ${max_cluster} c_sizeB mode vector ave one beyond ignore file ${output_filename}_cluB.txt
+#fix cluhistB type2 ave/histo 50000 1 50000 0 ${max_cluster} ${max_cluster} c_sizeB mode vector ave one beyond ignore file ${output_filename}_cluB.txt
 
-compute clusterall all aggregate/atom 1.05
+compute clusterall all aggregate/atom ${cut}
 compute ccall all chunk/atom c_clusterall compress yes
 compute sizeall all property/chunk ccall count
 fix cluhistall all ave/histo 50000 10 1000000 0 ${max_cluster} ${max_cluster} c_sizeall mode vector ave one beyond ignore file ${output_filename}_cluall.txt
+#fix cluhistall all ave/histo 50000 1 50000 0 ${max_cluster} ${max_cluster} c_sizeall mode vector ave one beyond ignore file ${output_filename}_cluall.txt
 
 rerun ../${dumpfile}  dump x y z wrapped no scaled no
 
