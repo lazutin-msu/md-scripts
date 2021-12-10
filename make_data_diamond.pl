@@ -10,9 +10,10 @@ use POSIX;
 $time = 2000000;
 $repeat = 1;
 $R_sphere = 30;
+$cell_mult = 2.0;
 
 $Ngpu = 1;
-$Ncpu = 6;
+$Ncpu = 8;
 #$path_to_dump = "/home/lazutin/NAS-Personal/lazutin/l1_BB_change_pot_re";
 #$path_to_dump = "";
 #$r_aggr = 1.3;
@@ -33,6 +34,7 @@ GetOptions (
 'lcell|l=f' => \$lcell,
 'repeat|r=i' => \$repeat,
 'time|t=i' => \$time,
+'mult|m=f' => \$cell_mult,
 'g|gpuid=i' => \$gpu_num,
 'help|h' => \$help);
 if($help)
@@ -125,12 +127,12 @@ $is_datafile = 0;
 $datafile = sprintf "data_R%f",$R_sphere;
 }
 
-$dirname = sprintf "R%.1f_N%d_l%.1f_n%d",$R_sphere, $Nprobes, $lcell,$Ndir;
+$dirname = sprintf "R%.1f_N%d_l%.1f_m%.1f_n%d",$R_sphere, $Nprobes, $lcell,$cell_mult,$Ndir;
 $scriptname = "script";
 $shellname_all = "run.sh";
 #$shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
 $shellname = sprintf "run_cpu%d.sh",$cpuid;  #look at run.sh too
-$output_filename = sprintf "R%.1f_N%d_l%.1f_n%d",$R_sphere,$Nprobes, $lcell,$Ndir;
+$output_filename = sprintf "R%.1f_N%d_l%.1f_m%.1f_n%d",$R_sphere,$Nprobes, $lcell,$cell_mult, $Ndir;
 
 if( -d $dirname)
  {
@@ -138,10 +140,10 @@ if( -d $dirname)
  while(-d $dirname)
   {
   $Ndir++;
-  $dirname = sprintf "R%.1f_N%d_l%.1f_n%d",$R_sphere, $Nprobes, $lcell, $Ndir;
+  $dirname = sprintf "R%.1f_N%d_l%.1f_m%.1f_n%d",$R_sphere, $Nprobes, $lcell, $cell_mult, $Ndir;
 #  $shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
 #  $output_filename = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$Ndir;
-  $output_filename = sprintf "R%.1f_N%d_l%.1f_n%d",$R_sphere,$Nprobes, $lcell,$Ndir;
+  $output_filename = sprintf "R%.1f_N%d_l%.1f_m%.1f_n%d",$R_sphere,$Nprobes, $lcell, $cell_mult, $Ndir;
   }
  }
 
@@ -151,9 +153,18 @@ $dirname = $dirname."/";
 
 #$totalatoms = $natoms * $spheres;
 
-$lx =  ( 2.0 * $R_sphere ) ;
-$ly =  ( 2.0 * $R_sphere ) ;
-$lz =  ( 2.0 * $R_sphere ) ;
+#$lx =  ( 2.0 * $R_sphere ) ;
+#$ly =  ( 2.0 * $R_sphere ) ;
+#$lz =  ( 2.0 * $R_sphere ) ;
+
+$lx =  ( 3.0 * $R_sphere ) ;
+$ly =  ( 3.0 * $R_sphere ) ;
+$lz =  ( 3.0 * $R_sphere ) ;
+
+$lx =  ( $cell_mult * $R_sphere ) ;
+$ly =  ( $cell_mult * $R_sphere ) ;
+$lz =  ( $cell_mult * $R_sphere ) ;
+
 
 $hicube = int($R_sphere / $lcell) + 3;
 $lowcube = -int($R_sphere / $lcell) - 3;
@@ -382,7 +393,7 @@ suffix gpu
 units lj
 atom_style atomic
 neighbor        1.5 bin
-neigh_modify    every 5 delay 5 check yes
+neigh_modify    every 5 delay 5 check yes one 5000
 
 #pair_style hybrid/overlay yukawa 1.2 4.0 lj/cut 1.1224620 lj/expand 1.1224620
 pair_style lj/cut 4.0
@@ -399,7 +410,8 @@ create_atoms 2 random ${Nprobes} $seed2 seeds
 
 velocity all create ${set_temp} $seed2
 
-pair_coeff 1*2 1*2 1.0 1.0 
+pair_coeff 1*2 1*2 0.0 1.0 
+pair_coeff 1 2 1.0 1.0 
 
 
 
@@ -582,8 +594,8 @@ cd $dirname
 #/home/lazutin/src/lammps-10Feb15/src/lmp_cuda -sf gpu  -in $scriptname 
 #/home/lazutin/src/lammps-11Aug17/src/lmp_cuda -sf gpu  -in $scriptname 
 #/home/lazutin/src/lammps-16Mar18/src/lmp_cuda -sf gpu  -in $scriptname
-#/home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
-mpirun -np 4 /home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
+/home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
+#mpirun -np 4 /home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
 cd ..
 END
 #print SH "sbatch -n 1 -p gputest ompi lmp_linux -in $scriptname \n";
