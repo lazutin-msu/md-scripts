@@ -11,9 +11,10 @@ $time = 2000000;
 $repeat = 1;
 $R_sphere = 30;
 $cell_mult = 2.0;
+$set_temp = 1.0;
 
-$Ngpu = 1;
-$Ncpu = 8;
+$Ngpu = 2;
+$Ncpu = 12;
 #$path_to_dump = "/home/lazutin/NAS-Personal/lazutin/l1_BB_change_pot_re";
 #$path_to_dump = "";
 #$r_aggr = 1.3;
@@ -34,6 +35,7 @@ GetOptions (
 'lcell|l=f' => \$lcell,
 'repeat|r=i' => \$repeat,
 'time|t=i' => \$time,
+'temp|p=f' => \$set_temp,
 'mult|m=f' => \$cell_mult,
 'g|gpuid=i' => \$gpu_num,
 'help|h' => \$help);
@@ -47,6 +49,7 @@ if($help)
   -r repeat = 1
   -t time = 2000000
   -g gpuid
+  -p temp = 1.0
   -h help\n");
  }
 
@@ -110,7 +113,7 @@ $gpuid = $gpu_num;
 }
 
 
-if($gpuid==1){$gpuid=2;}
+#if($gpuid==1){$gpuid=2;}
 printf "R_sphere = %f\nchains = %d\nlength = %d \ngpuid= %d\n",$R_sphere,$chains,$N,$gpuid;
 
 $Ndir = 1;
@@ -127,12 +130,12 @@ $is_datafile = 0;
 $datafile = sprintf "data_R%f",$R_sphere;
 }
 
-$dirname = sprintf "R%.1f_N%d_l%.1f_m%.1f_n%d",$R_sphere, $Nprobes, $lcell,$cell_mult,$Ndir;
+$dirname = sprintf "R%.1f_N%d_l%.1f_m%.1f_t%.1f_n%d",$R_sphere, $Nprobes, $lcell,$cell_mult,$set_temp,$Ndir;
 $scriptname = "script";
 $shellname_all = "run.sh";
 #$shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
 $shellname = sprintf "run_cpu%d.sh",$cpuid;  #look at run.sh too
-$output_filename = sprintf "R%.1f_N%d_l%.1f_m%.1f_n%d",$R_sphere,$Nprobes, $lcell,$cell_mult, $Ndir;
+$output_filename = sprintf "R%.1f_N%d_l%.1f_m%.1f_t%.1f_n%d",$R_sphere,$Nprobes, $lcell,$cell_mult,$set_temp, $Ndir;
 
 if( -d $dirname)
  {
@@ -140,10 +143,10 @@ if( -d $dirname)
  while(-d $dirname)
   {
   $Ndir++;
-  $dirname = sprintf "R%.1f_N%d_l%.1f_m%.1f_n%d",$R_sphere, $Nprobes, $lcell, $cell_mult, $Ndir;
+  $dirname = sprintf "R%.1f_N%d_l%.1f_m%.1f_t%.1f_n%d",$R_sphere, $Nprobes, $lcell, $cell_mult,$set_temp, $Ndir;
 #  $shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
 #  $output_filename = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$Ndir;
-  $output_filename = sprintf "R%.1f_N%d_l%.1f_m%.1f_n%d",$R_sphere,$Nprobes, $lcell, $cell_mult, $Ndir;
+  $output_filename = sprintf "R%.1f_N%d_l%.1f_m%.1f_t%.1f_n%d",$R_sphere,$Nprobes, $lcell, $cell_mult,$set_temp, $Ndir;
   }
  }
 
@@ -375,10 +378,11 @@ $time_energy = $time /4;
 $step_energy = 100;
 $num_energy = $time_energy / $step_energy;
 
-$dbins = 0.1;
+#$dbins = 0.1;
+$dbins = 0.05;
 $nbins = int($lx/$dbins);
 
-$set_temp = 1.0;
+#$set_temp = 1.0;
 
 #$R_sphere_cutoff = 1.1224620 * $R_sphere;
 #$R_sphere2 = $R_sphere - 0.5;
@@ -438,7 +442,7 @@ timestep 0.0001
 
 #dump dumpmin all atom 1 ${output_filename}.minimize.lammpstrj.gz
 
-minimize 0.0 1.0 1000 1000
+#minimize 0.0 1.0 1000 1000
 
 #undump dumpmin
 
