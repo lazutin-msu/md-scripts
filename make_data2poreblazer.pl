@@ -12,7 +12,7 @@ $repeat = 1;
 $R_sphere = 30;
 
 $Ngpu = 1;
-$Ncpu = 6;
+$Ncpu = 12;
 #$path_to_dump = "/home/lazutin/NAS-Personal/lazutin/l1_BB_change_pot_re";
 $path_to_dump = "";
 $r_aggr = 1.3;
@@ -352,7 +352,7 @@ my.atoms
 1.00
 500
 $grid_size
-40.0, 0.25
+100.0, 3.00
 $seed
 0
 END
