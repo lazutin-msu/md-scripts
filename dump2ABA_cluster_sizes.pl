@@ -191,7 +191,7 @@ open(OUT,">".$outfile) or die "cant open ".$outfile;
 print OUT <<END;
 # Time-averaged data for fix ClGyrOut
 # TimeStep Number-of-rows
-# Row c_ClGyr
+# Row c_ClSize c_ClGyr
 END
 
 $flag = 0;
@@ -455,7 +455,8 @@ my $max_cluster = 0;
   }
  }
 
-printf OUT "%d %d\n",$step,$max_cluster;
+#printf OUT "%d %d\n",$step,$max_cluster;
+$cur_output = "";
 
 @list_clu_sorted = sort { $a <=> $b } @list_clu;
 
@@ -563,10 +564,16 @@ if(scalar(@list_atoms)==0)
   $R2 = sqrt($R2);
   #print "clu $iclu Nclu $clu_N Rg $R2 \n";
 #  printf OUT "%d %d %f\n",$iclu,$clu_N,$R2;
-  printf OUT "%d %d %f\n",$inc_clu,$clu_N,$R2;
+
+  #printf OUT "%d %d %f\n",$inc_clu,$clu_N,$R2;
+  $cur_output = $cur_output . sprintf "%d %d %f\n",$inc_clu,$clu_N,$R2;
+
   $inc_clu++;
 
 } # iclu
+
+printf OUT "%d %d\n",$step,$inc_clu-1;
+print OUT $cur_output;
 
 } #start time end time
 
