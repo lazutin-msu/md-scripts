@@ -15,6 +15,7 @@ GetOptions (
 'o|out=s' => \$outfile, 
 'b|begin=i' => \$start_time, 
 'e|end=i' => \$end_time, 
+'p|panda' => \$is_panda,
 #'t|type=i' => \$out_type, 
 #'r|cutoff=f' => \$cutoff,
 #'g|grid=f' => \$grid_size,
@@ -188,12 +189,21 @@ if($in_file =~ /\.gz$/)
 open INPUT, "<$in_file" or die "Cannot open $in_file: $!";
  }
 open(OUT,">".$outfile) or die "cant open ".$outfile;
-print OUT <<END;
+if(!$is_panda)
+ {
+ print OUT <<END;
 # Time-averaged data for fix ClGyrOut
 # TimeStep Number-of-rows
 # Row c_ClSize c_ClGyr
 END
-
+ }
+ else
+ {
+ print OUT <<END;
+t iclu size gyr
+END
+ }
+ 
 $flag = 0;
 
 OUTCYCLE: while(1)
@@ -566,14 +576,28 @@ if(scalar(@list_atoms)==0)
 #  printf OUT "%d %d %f\n",$iclu,$clu_N,$R2;
 
   #printf OUT "%d %d %f\n",$inc_clu,$clu_N,$R2;
-  $cur_output = $cur_output . sprintf "%d %d %f\n",$inc_clu,$clu_N,$R2;
+  if(!$is_panda)
+   {
+   $cur_output = $cur_output . sprintf "%d %d %f\n",$inc_clu,$clu_N,$R2;
+   }
+   else
+   {
+   $cur_output = $cur_output . sprintf "%d %d %d %f\n",$step, $inc_clu,$clu_N,$R2;   
+   }
 
   $inc_clu++;
 
 } # iclu
 
-printf OUT "%d %d\n",$step,$inc_clu-1;
-print OUT $cur_output;
+if(!$is_panda)
+ {
+ printf OUT "%d %d\n",$step,$inc_clu-1;
+ print OUT $cur_output;
+ }
+ else
+ {
+ print OUT $cur_output;
+ }
 
 } #start time end time
 
