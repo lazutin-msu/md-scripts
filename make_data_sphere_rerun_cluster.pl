@@ -38,6 +38,7 @@ GetOptions (
 #'step|s=f' => \$step,
 'g|gpuid=i' => \$gpu_num,
 'm|max_cluster=i' => \$max_cluster,
+'outdump|o=s' => \$outdump,
 #'p|spheres=i' => \$spheres,
 #'x|dx=f' => \$spheres_dx,
 #'pressure=f' => \$pressure,
@@ -509,6 +510,17 @@ compute ccall all chunk/atom c_clusterall compress yes
 compute sizeall all property/chunk ccall count
 fix cluhistall all ave/histo 50000 10 1000000 0 ${max_cluster} ${max_cluster} c_sizeall mode vector ave one beyond ignore file ${output_filename}_cluall.txt
 #fix cluhistall all ave/histo 50000 1 50000 0 ${max_cluster} ${max_cluster} c_sizeall mode vector ave one beyond ignore file ${output_filename}_cluall.txt
+
+END
+
+if($outdump)
+{
+print SCRIPT <<END;
+dump dump_cluster all custom 50000 ${outdump} id type mol xu yu zu ix iy iz c_ccA c_ccB c_ccall
+END
+}
+
+print SCRIPT <<END;
 
 rerun ../${dumpfile}  dump x y z wrapped no scaled no
 
