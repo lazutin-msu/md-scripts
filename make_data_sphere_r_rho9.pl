@@ -40,6 +40,7 @@ GetOptions (
 'x|dx=f' => \$spheres_dx,
 'pressure=f' => \$pressure,
 'structure=s' => \$structure,
+'lomo' => \$lomo_flag,
 'help|h' => \$help);
 if($help)
  {
@@ -57,6 +58,7 @@ if($help)
   -g gpuid
   --pressure
   --structure HP or PH
+  --lomo to calc on Lomonosov-2
   -h help\n");
  }
 
@@ -423,9 +425,23 @@ $R_sphere2 = $R_sphere - 0.5;
 $hi_bound = $R_sphere + $N;
 
 open(SCRIPT,">".$dirname.$scriptname);
+
+if($lomo_flag)
+{
+print SCRIPT <<END;
+#package gpu 1 neigh no gpuID $gpuid $gpuid
+#suffix gpu
+END
+}
+else
+{
 print SCRIPT <<END;
 package gpu 1 neigh no gpuID $gpuid $gpuid
 suffix gpu
+END
+}
+
+print SCRIPT <<END;
 units lj
 atom_style bond
 neighbor        1.5 bin
@@ -671,8 +687,22 @@ fix spatb type2 ave/chunk ${step_energy} ${num_energy} ${time} binsphereb densit
 #dump dump_cluster all custom ${time_dump} ${output_filename}.dump.gz id type mol xu yu zu ix iy iz c_cluster1 c_cluster2 c_coord1[1] c_coord1[2] c_coord1[3] c_coord1[4] c_clustnum c_poten c_bonen c_cluster1b c_cluster1bb c_cluster1b0 c_cluster1b1 c_cluster1b2 c_cluster1b3 c_cluster1b4 c_clust_z5 c_clust_z10 c_clust_z15 c_clust_z20 c_clust_z25 c_clust_z30 c_clust_z35 c_clust_z40 c_clust_z45 c_clust_z50 c_clust_z55 c_clust_z60 c_clust_z65 c_clust_z70 c_clust_z75 c_clust_z80
 #dump dump_cluster all custom ${time_dump} ${path_to_dump}${output_filename}.dump.gz id type mol xu yu zu ix iy iz c_cluster1 c_cluster2 c_coord1[1] c_coord1[2] c_coord1[3] c_coord1[4] c_clustnum c_poten c_bonen c_clust_cut c_clust_z5 c_clust_z10 c_clust_z15 c_clust_z20 c_clust_z25 c_clust_z30 c_clust_z35 c_clust_z40 c_clust_z45 c_clust_z50 c_clust_z55 c_clust_z60 c_clust_z65 c_clust_z70 c_clust_z75 c_clust_z80
 #dump dump_cluster all custom ${time_dump} ${path_to_dump}${output_filename}.dump.gz id type mol xu yu zu ix iy iz c_cluster1 c_cluster2 c_coord1[1] c_coord1[2] c_coord1[3] c_coord1[4] c_clustnum c_poten c_bonen c_clust_cut
-dump dump_cluster all custom ${time_dump} ${path_to_dump}${output_filename}.dump.gz id type mol xu yu zu ix iy iz
+END
 
+if(lomo_flag)
+{
+print SCRIPT <<END;
+dump dump_cluster all custom ${time_dump} ${path_to_dump}${output_filename}.dump id type mol xu yu zu ix iy iz
+END
+}
+else
+{
+print SCRIPT <<END;
+dump dump_cluster all custom ${time_dump} ${path_to_dump}${output_filename}.dump.gz id type mol xu yu zu ix iy iz
+END
+}
+
+print SCRIPT <<END;
 # heat capacity
 compute peall all pe 
 compute keall all ke 
@@ -704,7 +734,21 @@ timestep 0.005
 fix bal all balance 50000 1.0 shift xyz 10 1.1
 
 #dump dump all atom ${time_dump} ${path_to_dump}${output_filename}.lammpstrj.gz
+END
+if($lomo_flag)
+{
+print SCRIPT <<END;
+dump dumplast all atom ${time_lastdump} ${output_filename}.last.lammpstrj
+END
+}
+else
+{
+print SCRIPT <<END;
 dump dumplast all atom ${time_lastdump} ${output_filename}.last.lammpstrj.gz
+END
+}
+
+print SCRIPT <<END;
 #dump_modify dump scale no
 
 run $time
@@ -748,16 +792,34 @@ close(SCRIPT);
 
 open(SH,">>".$shellname);
 #print SH "nohup /usr/mount-opt/lammps/lmp_ubuntu_1Feb14 <$scriptname  &";
+if($lomo_flag)
+{
 print SH <<END;
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-6.5/targets/x86_64-linux/lib
+#export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-6.5/targets/x86_64-linux/lib
 cd $dirname
 #/home/lazutin/src/lammps-10Feb15/src/lmp_cuda -sf gpu  -in $scriptname 
 #/home/lazutin/src/lammps-11Aug17/src/lmp_cuda -sf gpu  -in $scriptname 
 #/home/lazutin/src/lammps-16Mar18/src/lmp_cuda -sf gpu  -in $scriptname
 #/home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
+#mpirun -np 4 /home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
+sbatch -n 256 --time=1-23:30:00 -p compute_prio ompi /home/lazutin_2123/_scratch/src/lammps-29Oct20/build-nogpu/lmp  -in script
+cd ..
+END
+}
+else
+{
+print SH <<END;
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-6.5/targets/x86_64-linux/lib
+cd $dirname
+#/home/lazutin/src/lammps-10Feb15/src/lmp_cuda -sf gpu  -in $scriptname
+#/home/lazutin/src/lammps-11Aug17/src/lmp_cuda -sf gpu  -in $scriptname
+#/home/lazutin/src/lammps-16Mar18/src/lmp_cuda -sf gpu  -in $scriptname
+#/home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
 mpirun -np 4 /home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
 cd ..
 END
+}
+
 #print SH "sbatch -n 1 -p gputest ompi lmp_linux -in $scriptname \n";
 #print SH "sbatch -n 1014 -t 4300 -p regular4 ompi lmp_linux  -in $scriptname \n";
 close(SH);
