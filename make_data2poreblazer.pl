@@ -35,7 +35,8 @@ GetOptions (
 'g|gpuid=i' => \$gpu_num,
 #'m|max_cluster=i' => \$max_cluster,
 #'p|spheres=i' => \$spheres,
-#'x|dx=f' => \$spheres_dx,
+'d|dr=f' => \$radius_dr,
+'x|max=f' => \$max_radius,
 #'pressure=f' => \$pressure,
 #'time_deform=i' => \$time_deform,
 #'rate_deform=f' => \$rate_deform,
@@ -60,7 +61,9 @@ if($help)
 #  -p spheres
 #  -x dx spheres dx
   -g gpuid
-  -m max_cluster
+  -d dr hist step = 0.25
+  -x max max d for hist = max lbox
+#  -m max_cluster
 #  --pressure
 #  --time_deform=100000
 #  --rate_deform=0.00002 
@@ -75,6 +78,8 @@ if(!$time_deform) {$time_deform = 100000;}
 if(($dir_deform ne "x")&&($dir_deform ne "y")&&($dir_deform ne "z")) {$dir_deform = "x";}
 #if(($num_np!=1)&&($num_np!=2)&&($num_np!=4)&&($num_np!=8)) {die "--np $num_np : should be 1, 2, 4, or 8\n";}
 if(!$rate_deform){$rate_deform = 0.00002;}
+if(!$radius_dr){$radius_dr=0.25;}
+#if(!$max_radius){$max_radius=100;}
 
 print STDERR "eps = ".$epsilon[0]." ".$epsilon[1]." ".$epsilon[2]."\n";
 
@@ -345,6 +350,22 @@ close(DAT);
 
 $seed = int(rand(9999999));
 
+if(!$max_radius)
+ {
+ if($lx>$ly)
+   {
+   $max_radius = $lx;
+   }
+   else
+   {
+   $max_radius = $ly;
+   }
+ if($lz>$max_radius)
+  {
+  $max_radius = $lz;
+  }
+ }
+
 open(DEF,">".$dirname."defaults.dat");
 print DEF <<END ;
 my.atoms
@@ -352,7 +373,7 @@ my.atoms
 1.00
 500
 $grid_size
-100.0, 3.00
+${max_radius}, ${radius_dr}
 $seed
 0
 END
