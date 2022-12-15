@@ -574,6 +574,12 @@ run 100000
 timestep 0.003
 run  50000
 
+END
+
+if($spheres>1)
+{
+print SCRIPT <<END;
+
 #fix pres all press/berendsen iso 10.0 10.0 100.0
 
 #fix pres all press/berendsen iso 100.0 100.0 100.0
@@ -585,6 +591,10 @@ thermo_style    custom step time temp ke pe evdwl ebond etotal press density lx 
 run  300000
 
 unfix pres
+END
+}
+
+print SCRIPT <<END;
 
 undump dump_cluster3
 
