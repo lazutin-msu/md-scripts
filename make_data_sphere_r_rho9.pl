@@ -40,6 +40,7 @@ GetOptions (
 'x|dx=f' => \$spheres_dx,
 'pressure=f' => \$pressure,
 'structure=s' => \$structure,
+'stiff=f' => \$k_stiff,
 'lomo' => \$lomo_flag,
 'help|h' => \$help);
 if($help)
@@ -168,7 +169,14 @@ if($dx<(2.0*$bond)){$bond=$dx/2.0;}
 $delta_rho = $bond;
 
 $natoms = 2 * $chains * $N + 1;
+if(!$k_stiff)
+ {
 $nbonds = (2*$N - 1) * $chains;
+ }
+ else
+ {
+$nbonds = (2*$N - 1) * $chains + $chains ;
+ }
 
 $totalatoms = $natoms * $spheres;
 $totalbonds = $nbonds * $spheres;
@@ -257,14 +265,36 @@ for($k=0;$k<$chains;$k++)
    $type[$natoms * $isphere + $iatom+1] = 2;
    $mol[$natoms * $isphere + $iatom+1] = ($chains + 1) * $isphere + $k + 2;
    $partnum[$natoms * $isphere + $iatom+1] = $isphere + 1;
+if(!$k_stiff)
+ {
    if($imono!=0)
     {
     $at1_bond[$ibond] = $natoms * $isphere + $iatom - 2;
     $at2_bond[$ibond] = $natoms * $isphere + $iatom;
+    $bond_type[$ibond] = 1;
     $ibond++;
     }
+ }
+ else
+ {
+   if($imono!=0)
+    {
+    $at1_bond[$ibond] = $natoms * $isphere + $iatom - 2;
+    $at2_bond[$ibond] = $natoms * $isphere + $iatom;
+    $bond_type[$ibond] = 1;
+    $ibond++;
+    }
+    else
+    {
+    $at1_bond[$ibond] = $natoms * $isphere + 1;
+    $at2_bond[$ibond] = $natoms * $isphere + $iatom;
+    $bond_type[$ibond] = 2;
+    $ibond++;
+    }
+ }
    $at1_bond[$ibond] = $natoms * $isphere + $iatom;
    $at2_bond[$ibond] = $natoms * $isphere + $iatom+1;
+   $bond_type[$ibond] = 1;
    $ibond++;
    }
    }
@@ -282,6 +312,8 @@ for($k=0;$k<$chains;$k++)
  } # iy
 } # iz
 
+(($ibond-1)==$totalbonds) or die "ibond $ibond != totalbonds $totalbonds";
+
 if(!$is_datafile)
 {
 print "writing to $datafile \n";
@@ -294,10 +326,21 @@ printf OUT "%11d bonds\n", $totalbonds;
 print OUT <<END;
 
          4 atom types
+END
+if(!$k_stiff)
+{
+print OUT <<END;
          1 bond types
 
 END
+}
+else
+{
+print OUT <<END;
+         2 bond types
 
+END
+}
 #printf OUT "      %f %f xlo xhi\n", -$lx, $lx;
 #printf OUT "      %f %f ylo yhi\n", -$ly, $ly;
 #printf OUT "      %f %f zlo zhi\n", -$lz, $lz;
@@ -332,7 +375,14 @@ print OUT "\nBonds\n\n";
 
 for($ibond=1;$ibond<=$totalbonds;$ibond++)
  {
+if(!$k_stiff)
+{
  printf OUT "%6d %6d %6d %6d\n",$ibond,1,$at1_bond[$ibond],$at2_bond[$ibond];
+}
+else
+{
+ printf OUT "%6d %6d %6d %6d\n",$ibond,$bond_type[$ibond],$at1_bond[$ibond],$at2_bond[$ibond];
+}
  }
 
 close(OUT);
@@ -443,12 +493,39 @@ END
 
 print SCRIPT <<END;
 units lj
+END
+
+if($k_stiff)
+{
+print SCRIPT <<END;
+comm_modify cutoff 11.0
+newton off
+END
+}
+
+print SCRIPT <<END;
 atom_style bond
 neighbor        1.5 bin
 neigh_modify    every 5 delay 5 check yes
 
 pair_style hybrid/overlay yukawa 1.2 4.0 lj/cut 1.1224620 lj/expand 1.1224620
+END
+
+if(!$k_stiff)
+{
+print SCRIPT <<END;
 bond_style fene 
+END
+}
+else
+{
+print SCRIPT <<END;
+bond_style hybrid fene harmonic 
+END
+
+}
+
+print SCRIPT <<END;
 boundary p p p
 #special_bonds fene
 special_bonds lj/coul 1.0 1.0 1.0
@@ -468,23 +545,65 @@ pair_coeff 2 3 yukawa $epsAB[0]
 pair_coeff 2 2 yukawa $epsBB[0]
 
 
+END
+if(!$k_stiff)
+{
+print SCRIPT <<END;
 bond_coeff 1 30.0 1.5 0.0 1.0
+END
+}
+else
+{
+$R_bond = $R_sphere + 0.5;
+print SCRIPT <<END;
+bond_coeff 1 fene 30.0 1.5 0.0 1.0
+bond_coeff 2 harmonic ${k_stiff} ${R_bond}
+END
+}
+print SCRIPT <<END;
 
 group roots type 3 4
 group rest type 1 2
 group type2 type 2
 group type1 type 1 3
+END
 
+if($k_stiff)
+{
+print SCRIPT <<END;
+compute bty all property/local batom1 batom2 btype
+compute dis all bond/local dist
+compute dis_min all reduce min c_dis[*]
+compute dis_max all reduce max c_dis[*]
 
+thermo 1000
+thermo_style    custom step time temp ke pe evdwl ebond  etotal press c_dis_min c_dis_max
+END
+}
 
+print SCRIPT <<END;
 #velocity roots zero linear
 
 #fix root roots move linear 0 0 0 
+END
 
+if(!$k_stiff)
+{
+print SCRIPT <<END;
 fix lan rest langevin ${set_temp} ${set_temp} 100.0 $seed
 fix finve rest nve 
 
 END
+}
+else
+{
+print SCRIPT <<END;
+fix lan all langevin ${set_temp} ${set_temp} 100.0 $seed
+fix finve all nve 
+
+END
+
+}
 
 #for($igroup=0;$igroup<$spheres;$igroup++)
 #{
@@ -496,6 +615,8 @@ END
 #}
 #print SCRIPT "fix firig roots rigid/nve group ".$spheres;
 
+if(!$k_stiff)
+{
 open(CORE,">".$dirname."coreid.txt");
 
 print CORE $totalatoms."\n";
@@ -509,6 +630,7 @@ for($iatom=1;$iatom<=$totalatoms;$iatom++)
  }
 
 close(CORE);
+}
 
 open(PART,">".$dirname."partnum.txt");
 
@@ -524,10 +646,12 @@ for($iatom=1;$iatom<=$totalatoms;$iatom++)
 
 close(PART);
 
-
+if(!$k_stiff)
+{
 print SCRIPT "variable coreid atomfile coreid.txt\n";
 
 print SCRIPT "fix firig roots rigid/nve custom v_coreid langevin ${set_temp} ${set_temp} 100.0 $seed \n";
+}
 
 #for($igroup=0;$igroup<$spheres;$igroup++)
 #{
@@ -586,7 +710,7 @@ print SCRIPT <<END;
 fix pres all press/berendsen iso ${pressure} ${pressure} 100.0
 
 thermo 1000
-thermo_style    custom step time temp ke pe evdwl ebond etotal press density lx vol
+thermo_style    custom step time temp ke pe evdwl ebond etotal press density lx vol 
 
 run  300000
 
@@ -644,9 +768,22 @@ fix cluhist3b all ave/histo 5000 100 1000000 0 100000 100000 c_size3 mode vector
 
 compute yukpair all pair yukawa
 compute ljpair all pair lj/cut
+END
+if(!$k_stiff)
+{
+print SCRIPT <<END;
 thermo 1000
-thermo_style    custom step time temp ke pe evdwl c_yukpair c_ljpair ebond  etotal press
-
+thermo_style    custom step time temp ke pe evdwl c_yukpair c_ljpair ebond  etotal press 
+END
+}
+else
+{
+print SCRIPT <<END;
+thermo 1000
+thermo_style    custom step time temp ke pe evdwl c_yukpair c_ljpair ebond  etotal press  c_dis_min c_dis_max
+END
+}
+print SCRIPT <<END;
 #compute gyrtensor all gyration/molecule tensor 
 #compute rgyr all gyration/molecule
 
