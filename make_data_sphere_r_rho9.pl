@@ -41,6 +41,7 @@ GetOptions (
 'pressure=f' => \$pressure,
 'structure=s' => \$structure,
 'stiff=f' => \$k_stiff,
+'fix_particle' => \$fix_particle,
 'lomo' => \$lomo_flag,
 'help|h' => \$help);
 if($help)
@@ -560,6 +561,19 @@ bond_coeff 1 fene 30.0 1.5 0.0 1.0
 bond_coeff 2 harmonic ${k_stiff} ${R_bond}
 END
 }
+
+if($k_stiff)
+ {
+print SCRIPT <<END;
+
+group roots type 4
+group rest type 1 2 3
+group type2 type 2
+group type1 type 1 3
+END
+ }
+ else
+ {
 print SCRIPT <<END;
 
 group roots type 3 4
@@ -567,6 +581,7 @@ group rest type 1 2
 group type2 type 2
 group type1 type 1 3
 END
+ }
 
 if($k_stiff)
 {
@@ -597,11 +612,22 @@ END
 }
 else
 {
+if($fix_particle)
+ {
+print SCRIPT <<END;
+fix lan rest langevin ${set_temp} ${set_temp} 100.0 $seed
+fix finve rest nve 
+
+END
+ }
+ else
+ {
 print SCRIPT <<END;
 fix lan all langevin ${set_temp} ${set_temp} 100.0 $seed
 fix finve all nve 
 
 END
+ }
 
 }
 
