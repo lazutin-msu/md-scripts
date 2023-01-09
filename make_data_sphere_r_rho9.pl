@@ -43,6 +43,8 @@ GetOptions (
 'stiff=f' => \$k_stiff,
 'fix_particle' => \$fix_particle,
 'lomo' => \$lomo_flag,
+'fix_eps=f{3}' => \@fix_eps,
+'step_dump=i' => \$step_dump,
 'help|h' => \$help);
 if($help)
  {
@@ -70,6 +72,15 @@ print STDERR "eps = ".$epsilon[0]." ".$epsilon[1]." ".$epsilon[2]."\n";
 
 $time_lastdump = $time / 2;
 $time_dump = $time / 20;
+
+if(scalar(@fix_eps))
+ {
+ if($step_dump)
+   {
+   $time_dump = $step_dump;
+   }
+ }
+
 
 for($idirs=0;$idirs<$repeat;$idirs++)
 {
@@ -138,6 +149,29 @@ $is_datafile = 0;
 $datafile = sprintf "data_p%d_c%d_R%f_N%d_str%s_press%.2f",$spheres,$chains,$R_sphere,$N,$structure,$pressure;
 }
 
+if(scalar(@fix_eps))
+ {
+$dirname = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_fixeps_%.2f_%.2f_%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$fix_eps[0],$fix_eps[1],$fix_eps[2],$Ndir;
+$scriptname = "script";
+$shellname_all = "run.sh";
+#$shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
+$shellname = sprintf "run_cpu%d.sh",$cpuid;  #look at run.sh too
+$output_filename = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_fixeps_%.2f_%.2f_%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$fix_eps[0],$fix_eps[1],$fix_eps[2],$Ndir;
+
+if( -d $dirname)
+ {
+# die "$dirname exists";
+ while(-d $dirname)
+  {
+  $Ndir++;
+  $dirname = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_fixeps_%.2f_%.2f_%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$fix_eps[0],$fix_eps[1],$fix_eps[2],$Ndir;
+#  $shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
+  $output_filename = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_fixeps_%.2f_%.2f_%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$fix_eps[0],$fix_eps[1],$fix_eps[2],$Ndir;
+  }
+ }
+ }
+ else
+ {
 $dirname = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$Ndir;
 $scriptname = "script";
 $shellname_all = "run.sh";
@@ -156,6 +190,8 @@ if( -d $dirname)
   $output_filename = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$Ndir;
   }
  }
+ 
+ } #fix_eps
 
 `mkdir $dirname`;
 
@@ -469,6 +505,9 @@ $time_energy = $time /4;
 $step_energy = 100;
 $num_energy = $time_energy / $step_energy;
 
+
+
+
 $set_temp = 1.0;
 
 $R_sphere_cutoff = 1.1224620 * $R_sphere;
@@ -499,7 +538,7 @@ END
 if($k_stiff)
 {
 print SCRIPT <<END;
-comm_modify cutoff 11.0
+comm_modify cutoff 17.5
 newton off
 END
 }
@@ -507,7 +546,7 @@ END
 print SCRIPT <<END;
 atom_style bond
 neighbor        1.5 bin
-neigh_modify    every 5 delay 5 check yes
+neigh_modify    every 5 delay 5 check yes one 10000
 
 pair_style hybrid/overlay yukawa 1.2 4.0 lj/cut 1.1224620 lj/expand 1.1224620
 END
@@ -697,6 +736,12 @@ run 0
 #region mysphere sphere 0 0 0 ${R_sphere} side out
 #fix sphwall all wall/region mysphere lj93 2.0 1.0 0.8583742
 
+END
+
+if(!$is_datafile)
+{
+print SCRIPT <<END;
+
 min_style quickmin 
 #timestep 0.01
 timestep 0.0001
@@ -711,11 +756,6 @@ minimize 0.0 1.0 1000 1000
 
 #bond_coeff 1 30.0 1.5 0.0 1.0
 
-END
-
-if(!$is_datafile)
-{
-print SCRIPT <<END;
 timestep 0.002
 
 dump dump_cluster3 all custom 10000 ${output_filename}.rel2.dump.gz id type mol xu yu zu ix iy iz
@@ -862,7 +902,7 @@ fix spatb type2 ave/chunk ${step_energy} ${num_energy} ${time} binsphereb densit
 #dump dump_cluster all custom ${time_dump} ${path_to_dump}${output_filename}.dump.gz id type mol xu yu zu ix iy iz c_cluster1 c_cluster2 c_coord1[1] c_coord1[2] c_coord1[3] c_coord1[4] c_clustnum c_poten c_bonen c_clust_cut
 END
 
-if(lomo_flag)
+if($lomo_flag)
 {
 print SCRIPT <<END;
 dump dump_cluster all custom ${time_dump} ${path_to_dump}${output_filename}.dump id type mol xu yu zu ix iy iz
@@ -921,6 +961,23 @@ dump dumplast all atom ${time_lastdump} ${output_filename}.last.lammpstrj.gz
 END
 }
 
+if(scalar @fix_eps)
+ {
+ print SCRIPT <<END;
+pair_coeff 1 1 yukawa $fix_eps[0]
+pair_coeff 1 3 yukawa $fix_eps[0]
+pair_coeff 3 3 yukawa $fix_eps[0]
+pair_coeff 1 2 yukawa $fix_eps[1]
+pair_coeff 2 3 yukawa $fix_eps[1]
+pair_coeff 2 2 yukawa $fix_eps[2]
+
+run ${time}
+write_data ${output_filename}.data
+END
+ }
+ else
+ {
+
 print SCRIPT <<END;
 #dump_modify dump scale no
 
@@ -947,6 +1004,7 @@ write_data ${output_filename}_e$ip.data
 END
  }
 
+ }
 #for($ip=scalar(@epsAA)-2;$ip>=0;$ip--)
 # {
 # print SCRIPT <<END;
