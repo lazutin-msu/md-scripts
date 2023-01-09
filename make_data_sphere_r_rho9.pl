@@ -63,6 +63,8 @@ if($help)
   --pressure
   --structure HP or PH
   --lomo to calc on Lomonosov-2
+  --fix_particle to fix particle mass center
+  --fix_eps epsAA epsAB epsBB run at this energy parameters 
   -h help\n");
  }
 
