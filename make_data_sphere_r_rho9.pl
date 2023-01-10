@@ -45,6 +45,7 @@ GetOptions (
 'lomo' => \$lomo_flag,
 'fix_eps=f{3}' => \@fix_eps,
 'step_dump=i' => \$step_dump,
+'comm_mod=f' => \$comm_mod,
 'help|h' => \$help);
 if($help)
  {
@@ -65,6 +66,7 @@ if($help)
   --lomo to calc on Lomonosov-2
   --fix_particle to fix particle mass center
   --fix_eps epsAA epsAB epsBB run at this energy parameters 
+  --comm_mod communication cutoff distance
   -h help\n");
  }
 
@@ -539,10 +541,13 @@ END
 
 if($k_stiff)
 {
+ if($comm_mod)
+ {
 print SCRIPT <<END;
-comm_modify cutoff 17.5
+comm_modify cutoff ${comm_mod}
 newton off
 END
+ }
 }
 
 print SCRIPT <<END;
