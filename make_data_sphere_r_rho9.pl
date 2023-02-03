@@ -896,8 +896,8 @@ fix spatb type2 ave/chunk ${step_energy} ${num_energy} ${time} binsphereb densit
 #compute coord1 all coord/atom cutoff ${r_aggr} 1 2 3 *
 
 #compute clustnum all cluster/atom ${r_aggr}
-#compute poten all pe/atom pair
-#compute bonen all pe/atom bond
+compute poten all pe/atom pair
+compute bonen all pe/atom bond
 
 #dump dump_cluster all custom ${time_dump} ${output_filename}.dump.gz id type mol xu yu zu ix iy iz c_cluster1 c_cluster2 c_coord1[1] c_coord1[2] c_coord1[3] c_coord1[4] c_clustnum c_poten c_bonen c_cluster1b c_cluster1bb c_cluster1b0 c_cluster1b1 c_cluster1b2 c_cluster1b3 c_cluster1b4 c_clust_z5 c_clust_z10 c_clust_z15 c_clust_z20 c_clust_z25 c_clust_z30 c_clust_z35 c_clust_z40 c_clust_z45 c_clust_z50 c_clust_z55 c_clust_z60 c_clust_z65 c_clust_z70 c_clust_z75 c_clust_z80
 #dump dump_cluster all custom ${time_dump} ${path_to_dump}${output_filename}.dump.gz id type mol xu yu zu ix iy iz c_cluster1 c_cluster2 c_coord1[1] c_coord1[2] c_coord1[3] c_coord1[4] c_clustnum c_poten c_bonen c_clust_cut c_clust_z5 c_clust_z10 c_clust_z15 c_clust_z20 c_clust_z25 c_clust_z30 c_clust_z35 c_clust_z40 c_clust_z45 c_clust_z50 c_clust_z55 c_clust_z60 c_clust_z65 c_clust_z70 c_clust_z75 c_clust_z80
@@ -907,13 +907,13 @@ END
 if($lomo_flag)
 {
 print SCRIPT <<END;
-dump dump_cluster all custom ${time_dump} ${path_to_dump}${output_filename}.dump id type mol xu yu zu ix iy iz
+dump dump_cluster all custom ${time_dump} ${path_to_dump}${output_filename}.dump id type mol xu yu zu ix iy iz c_poten c_bonen
 END
 }
 else
 {
 print SCRIPT <<END;
-dump dump_cluster all custom ${time_dump} ${path_to_dump}${output_filename}.dump.gz id type mol xu yu zu ix iy iz
+dump dump_cluster all custom ${time_dump} ${path_to_dump}${output_filename}.dump.gz id type mol xu yu zu ix iy iz c_poten c_bonen
 END
 }
 
