@@ -12,7 +12,7 @@ $repeat = 1;
 $R_sphere = 30;
 
 $Ngpu = 1;
-$Ncpu = 6;
+#$Ncpu = 6;
 #$path_to_dump = "/home/lazutin/NAS-Personal/lazutin/l1_BB_change_pot_re";
 $path_to_dump = "";
 $r_aggr = 1.3;
@@ -46,6 +46,8 @@ GetOptions (
 'fix_eps=f{3}' => \@fix_eps,
 'step_dump=i' => \$step_dump,
 'comm_mod=f' => \$comm_mod,
+'np=i' => \$np,
+'Ncpu=i' => \$Ncpu,
 'help|h' => \$help);
 if($help)
  {
@@ -67,10 +69,14 @@ if($help)
   --fix_particle to fix particle mass center
   --fix_eps epsAA epsAB epsBB run at this energy parameters 
   --comm_mod communication cutoff distance
+  --np number of cores to run on
+  --Ncpu number of tasks which run in parallel
   -h help\n");
  }
 
 if($structure ne "PH") {$structure = "HP";}
+
+if(!$Ncpu){$Ncpu = 6;}
 
 print STDERR "eps = ".$epsilon[0]." ".$epsilon[1]." ".$epsilon[2]."\n";
 
@@ -1046,6 +1052,37 @@ END
 }
 else
 {
+if($np)
+ {
+ if($np>1)
+  {
+print SH <<END;
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-6.5/targets/x86_64-linux/lib
+cd $dirname
+#/home/lazutin/src/lammps-10Feb15/src/lmp_cuda -sf gpu  -in $scriptname
+#/home/lazutin/src/lammps-11Aug17/src/lmp_cuda -sf gpu  -in $scriptname
+#/home/lazutin/src/lammps-16Mar18/src/lmp_cuda -sf gpu  -in $scriptname
+#/home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
+mpirun -np ${np} /home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
+cd ..
+END
+  }
+ else
+  {
+print SH <<END;
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-6.5/targets/x86_64-linux/lib
+cd $dirname
+#/home/lazutin/src/lammps-10Feb15/src/lmp_cuda -sf gpu  -in $scriptname
+#/home/lazutin/src/lammps-11Aug17/src/lmp_cuda -sf gpu  -in $scriptname
+#/home/lazutin/src/lammps-16Mar18/src/lmp_cuda -sf gpu  -in $scriptname
+/home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
+#mpirun -np 4 /home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
+cd ..
+END
+  }
+ }
+ else
+ {
 print SH <<END;
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-6.5/targets/x86_64-linux/lib
 cd $dirname
@@ -1056,6 +1093,7 @@ cd $dirname
 mpirun -np 4 /home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
 cd ..
 END
+ }
 }
 
 #print SH "sbatch -n 1 -p gputest ompi lmp_linux -in $scriptname \n";
