@@ -12,7 +12,7 @@ $repeat = 1;
 $R_sphere = 30;
 
 $Ngpu = 1;
-$Ncpu = 6;
+$Ncpu = 8;
 #$path_to_dump = "/home/lazutin/NAS-Personal/lazutin/l1_BB_change_pot_re";
 $path_to_dump = "";
 $r_aggr = 1.3;

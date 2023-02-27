@@ -28,6 +28,7 @@ GetOptions (
 'g|gpuid=i' => \$gpu_num,
 'lomo' => \$lomo_flag,
 'c|cell=f' => \$cell_size,
+'e|energy=s' => \$energyfile,
 'np=i' => \$np,
 'Ncpu=i' => \$Ncpu,
 'help|h' => \$help);
@@ -41,6 +42,7 @@ if($help)
   -g gpuid
   --lomo to calc on Lomonosov-2
   -c --cell cell size = 40
+  -e --energy energy file (matrix 5x5 of chi_ij)
   --np number of cores to run on
   --Ncpu number of tasks which run in parallel
   -h help\n");
@@ -51,6 +53,13 @@ if(!$Ncpu){$Ncpu = 6;}
 if(!$cell_size){$cell_size = 40;}
 
 if($sequence !~ /^[OCB]+$/) {die "sequence $sequence should contain only O C B \n";}
+
+$countO = $sequence =~ tr/O//;
+$countC = $sequence =~ tr/C//;
+$countB = $sequence =~ tr/B//;
+#$countO = length( $str =~ s/[^\Q$char\E]//rg )
+#$countC = $str =~ tr/C//;
+#$countB = $str =~ tr/B//;
 
 print STDERR "eps = ".$epsilon[0]." ".$epsilon[1]." ".$epsilon[2]."\n";
 
@@ -123,8 +132,11 @@ my $sequence = shift;
 my $time = shift;
 my $N = shift;
 my $cell_size = shift;
+my $count_O = shift;
+my $count_C = shift;
+my $count_B = shift;
 
-my $desc = sprintf "s%s_t%d_c%d_n%d.ml",$sequence,$time,$cell_size,$N;
+my $desc = sprintf "s%s_O%dC%dB%d_t%d_c%d_n%d.ml",$sequence,$count_O,$count_C,$count_B,$time,$cell_size,$N;
 return $desc;
 }
 
@@ -134,8 +146,11 @@ my $sequence = shift;
 my $time = shift;
 my $N = shift;
 my $cell_size = shift;
+my $count_O = shift;
+my $count_C = shift;
+my $count_B = shift;
 
-my $desc = sprintf "s%s_t%d_c%d_n%d",$sequence,$time,$cell_size,$N;
+my $desc = sprintf "s%s_O%dC%dB%d_t%d_c%d_n%d",$sequence,$count_O,$count_C,$count_B,$time,$cell_size,$N;
 return $desc;
 }
 
@@ -159,15 +174,15 @@ $is_datafile = 1;
 else
 {
 $is_datafile = 0;
-$datafile = datafilename($sequence, $time, $Ndir, $cell_size);
+$datafile = datafilename($sequence, $time, $Ndir, $cell_size,$countO,$countC,$countB);
 }
 
-$dirname = dirname($sequence, $time, $Ndir, $cell_size);
+$dirname = dirname($sequence, $time, $Ndir, $cell_size,$countO,$countC,$countB);
 $scriptname = "script";
 $shellname_all = "run.sh";
 #$shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
 $shellname = sprintf "run_cpu%d.sh",$cpuid;  #look at run.sh too
-$output_filename = dirname($sequence, $time, $Ndir, $cell_size);
+$output_filename = dirname($sequence, $time, $Ndir, $cell_size,$countO,$countC,$countB);
 
 if( -d $dirname)
  {
@@ -175,9 +190,9 @@ if( -d $dirname)
  while(-d $dirname)
   {
   $Ndir++;
-  $dirname = dirname($sequence, $time, $Ndir, $cell_size);
+  $dirname = dirname($sequence, $time, $Ndir, $cell_size,$countO,$countC,$countB);
 #  $shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
-  $output_filename = dirname($sequence, $time, $Ndir, $cell_size);
+  $output_filename = dirname($sequence, $time, $Ndir, $cell_size,$countO,$countC,$countB);
   }
  }
  
@@ -494,8 +509,70 @@ print SCRIPT <<END;
 #pair_coeff      4 5 38.70  4.5 1
 END
 
+if($energyfile)
+ {
+ open(EN,"<".$energyfile) or die "Cannot open $energyfile : $!";
+ for($i=0;$i<5;$i++)
+  {
+  $str = <EN>;
+  $str =~ s/^\s+//;
+  @arr = split /\s+/, $str;
+  for($j=0;$j<5;$j++)
+   {
+   $chi[$i][$j] = $arr[$j];
+   }
+  }
+ close(EN);
+ }
+ else
+ {
+my @as = ( [25, 26.52, 25.02, 26.03, 32.83],
+           [25,    25, 26.18, 30.08, 49.43],
+           [25,    25,    25, 26.35, 95.43],
+           [25,    25,    25,    25,170.72],
+           [25,    25,    25,    25,    25] );
 
+for($i=0;$i<5;$i++)
+ {
+ for($j=0;$j<5;$j++)
+  {
+  $chi[$i][$j] = ($as[$i][$j]-25)/3.27;
+  }
+ }
+ 
+ } # energyfile
 
+print "chi\n";
+for($i=0;$i<5;$i++)
+ {
+ for($j=0;$j<5;$j++)
+  {
+  printf " %f",$chi[$i][$j];
+  }
+ print "\n";
+ }
+
+ 
+$N = 10;
+#$time1 = $time/$N;
+$time1 = $time/$N/2;
+$time2 = $time/2;
+
+for($k=1;$k<=$N;$k++)
+{
+
+for($i=0;$i<4;$i++)
+ {
+ for($j=$i+1;$j<5;$j++)
+  {
+  printf SCRIPT "pair_coeff     %d %d %.2f %.1f %d\n",$i+1,$j+1,$chi[$i][$j]/$N*$k*3.27+25,4.5,1;
+  }
+ }
+printf SCRIPT "run %d\n",$time1;
+}
+
+if(0)
+{
 print SCRIPT <<END;
 
 pair_coeff      1 2 26.52  4.5 1
@@ -512,9 +589,13 @@ pair_coeff      3 4 26.35  4.5 1
 pair_coeff      3 5 95.43  4.5 1
 
 pair_coeff      4 5 170.72  4.5 1
+END
+}
 
+print SCRIPT <<END;
 
-run ${time} 
+#run ${time} 
+run ${time2} 
 
 write_data ${output_filename}_eq.data
 
