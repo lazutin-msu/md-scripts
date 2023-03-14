@@ -162,7 +162,7 @@ my $x = shift;
 return int($x+0.5);
 }
 
-if($gpuid==1){$gpuid=2;}
+#if($gpuid==1){$gpuid=2;}
 printf "R_sphere = %f\nchains = %d\nlength = %d \ngpuid= %d\n",$R_sphere,$chains,$N,$gpuid;
 
 $Ndir = 1;

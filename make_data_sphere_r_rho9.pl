@@ -918,13 +918,13 @@ END
 if($lomo_flag)
 {
 print SCRIPT <<END;
-dump dump_cluster all custom ${time_dump} ${path_to_dump}${output_filename}.dump id type mol xu yu zu ix iy iz c_poten c_bonen
+dump dump_cluster all custom ${time_dump} ${path_to_dump}${output_filename}.lammpstrj id type mol xu yu zu ix iy iz c_poten c_bonen
 END
 }
 else
 {
 print SCRIPT <<END;
-dump dump_cluster all custom ${time_dump} ${path_to_dump}${output_filename}.dump.gz id type mol xu yu zu ix iy iz c_poten c_bonen
+dump dump_cluster all custom ${time_dump} ${path_to_dump}${output_filename}.lammpstrj.gz id type mol xu yu zu ix iy iz c_poten c_bonen
 END
 }
 
@@ -952,6 +952,33 @@ variable cve1 equal sqrt(f_ener1[4]-f_ener1[3]*f_ener1[3])/v_natoms/(v_settemp*v
 END
 
 print SCRIPT "fix eneravg all ave/time ${time_energy} 1 ${time_energy} v_peavg1 v_cvp1 v_enavg1 v_cve1 file ${output_filename}_energy.txt ave one\n";
+
+print SCRIPT <<END;
+compute pebond all pe/atom bond
+compute pepair all pe/atom pair
+compute peatall all pe/atom 
+
+compute pebondA type1 pe/atom bond
+compute pepairA type1 pe/atom pair
+compute peatallA type1 pe/atom 
+
+compute pebondB type2 pe/atom bond
+compute pepairB type2 pe/atom pair
+compute peatallB type2 pe/atom 
+
+fix peb all ave/histo ${step_energy} ${num_energy} ${time_energy}    0 100 1000 c_pebond   file  ${output_filename}_hist_bond.txt ave one mode vector
+fix pep all ave/histo ${step_energy} ${num_energy} ${time_energy} -100 100 2000 c_pepair   file  ${output_filename}_hist_pair.txt ave one mode vector
+fix pea all ave/histo ${step_energy} ${num_energy} ${time_energy} -100 200 3000 c_peatall  file  ${output_filename}_hist_all.txt ave one mode vector
+
+fix peba type1 ave/histo ${step_energy} ${num_energy} ${time_energy}    0 100 1000 c_pebondA  file  ${output_filename}_hist_bondA.txt ave one mode vector
+fix pepa type1 ave/histo ${step_energy} ${num_energy} ${time_energy} -100 100 2000 c_pepairA  file  ${output_filename}_hist_pairA.txt ave one mode vector
+fix peaa type1 ave/histo ${step_energy} ${num_energy} ${time_energy} -100 200 3000 c_peatallA file  ${output_filename}_hist_allA.txt ave one mode vector
+
+fix pebb type2 ave/histo ${step_energy} ${num_energy} ${time_energy}    0 100 1000 c_pebondB  file  ${output_filename}_hist_bondB.txt ave one mode vector
+fix pepb type2 ave/histo ${step_energy} ${num_energy} ${time_energy} -100 100 2000 c_pepairB  file  ${output_filename}_hist_pairB.txt ave one mode vector
+fix peab type2 ave/histo ${step_energy} ${num_energy} ${time_energy} -100 200 3000 c_peatallB file  ${output_filename}_hist_allB.txt ave one mode vector
+
+END
 
 print SCRIPT <<END;
 
