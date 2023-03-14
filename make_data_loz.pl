@@ -31,6 +31,7 @@ GetOptions (
 'e|energy=s' => \$energyfile,
 'np=i' => \$np,
 'Ncpu=i' => \$Ncpu,
+'relax=i' => \$trelax,
 'help|h' => \$help);
 if($help)
  {
@@ -45,6 +46,7 @@ if($help)
   -e --energy energy file (matrix 5x5 of chi_ij)
   --np number of cores to run on
   --Ncpu number of tasks which run in parallel
+  --relax (100000) relaxation time
   -h help\n");
  }
 
@@ -453,8 +455,23 @@ restart  500000  restart.${output_filename}
 
 dump            1 all atom 100000 ${output_filename}.lammpstrj
 
+END
+
+if($trelax)
+{
+print SCRIPT <<END;
+run ${trelax}
+END
+}
+else
+{
+print SCRIPT <<END;
 run 100000
 #run 10000
+END
+}
+
+print SCRIPT <<END;
 write_data ${output_filename}_mix.data
 
 pair_coeff      1 1 25  4.5 1
