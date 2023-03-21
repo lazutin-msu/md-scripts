@@ -407,7 +407,8 @@ molecule 1 ${datafile}
 create_atoms 0 random ${num_mols} ${seed_create} bxx mol 1 ${seed_mol}
 
 bond_style harmonic
-bond_coeff 1 40.0 1.0 
+#bond_coeff 1 40.0 1.0 
+bond_coeff 1 6.0 1.0 
 
 # type(C) = 1 - backbone
 # type(O) = 2 - O-C-C
