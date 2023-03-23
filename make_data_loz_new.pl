@@ -33,6 +33,8 @@ GetOptions (
 'np=i' => \$np,
 'Ncpu=i' => \$Ncpu,
 'relax=i' => \$trelax,
+'noanneal' => \$flag_noanneal,
+'kbond=f' => \$kbond,
 'help|h' => \$help);
 if($help)
  {
@@ -47,13 +49,17 @@ if($help)
   -e --energy energy file (matrix 5x5 of chi_ij)
   --np number of cores to run on
   --Ncpu number of tasks which run in parallel
+  --noanneal no annealing
   --relax (100000) relaxation time
+  --kbond (40) bond koefficient
   -h help\n");
  }
 
 if(!$Ncpu){$Ncpu = 6;}
 
 if(!$cell_size){$cell_size = 40;}
+
+if(!$kbond){$kbond = 40.0}
 
 if($sequence !~ /^[OCB]+$/) {die "sequence $sequence should contain only O C B \n";}
 
@@ -407,7 +413,7 @@ molecule 1 ${datafile}
 create_atoms 0 random ${num_mols} ${seed_create} bxx mol 1 ${seed_mol}
 
 bond_style harmonic
-bond_coeff 1 40.0 1.0 
+bond_coeff 1 ${kbond} 1.0 
 
 # type(C) = 1 - backbone
 # type(O) = 2 - O-C-C
@@ -523,6 +529,22 @@ $N = 10;
 $time1 = $time/$N/2;
 $time2 = $time/2;
 
+if($flag_noanneal)
+{
+
+for($i=0;$i<$Ntypes;$i++)
+ {
+ for($j=$i;$j<$Ntypes;$j++)
+  {
+  printf SCRIPT "pair_coeff     %d %d %.2f %.1f %d\n",$i+1,$j+1,$chi[$i][$j]*3.27+25,4.5,1;
+  }
+ }
+printf SCRIPT "run %d\n",$time;
+
+}
+else
+{
+
 for($k=1;$k<=$N;$k++)
 {
 
@@ -540,6 +562,9 @@ print SCRIPT <<END;
 
 #run ${time} 
 run ${time2} 
+END
+}
+print SCRIPT <<END;
 
 write_data ${output_filename}_eq.data
 
