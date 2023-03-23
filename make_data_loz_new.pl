@@ -35,6 +35,7 @@ GetOptions (
 'relax=i' => \$trelax,
 'noanneal' => \$flag_noanneal,
 'kbond=f' => \$kbond,
+'rbond=f' => \$rbond,
 'help|h' => \$help);
 if($help)
  {
@@ -52,6 +53,7 @@ if($help)
   --noanneal no annealing
   --relax (100000) relaxation time
   --kbond (40) bond koefficient
+  --rbond (1) bond length
   -h help\n");
  }
 
@@ -59,7 +61,8 @@ if(!$Ncpu){$Ncpu = 6;}
 
 if(!$cell_size){$cell_size = 40;}
 
-if(!$kbond){$kbond = 40.0}
+if(!$kbond){$kbond = 40.0;}
+if(!$rbond){$rbond = 1.0;}
 
 if($sequence !~ /^[OCB]+$/) {die "sequence $sequence should contain only O C B \n";}
 
@@ -413,7 +416,7 @@ molecule 1 ${datafile}
 create_atoms 0 random ${num_mols} ${seed_create} bxx mol 1 ${seed_mol}
 
 bond_style harmonic
-bond_coeff 1 ${kbond} 1.0 
+bond_coeff 1 ${kbond} ${rbond} 
 
 # type(C) = 1 - backbone
 # type(O) = 2 - O-C-C
