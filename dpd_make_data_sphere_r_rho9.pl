@@ -46,6 +46,8 @@ GetOptions (
 'fix_eps=f{3}' => \@fix_eps,
 'step_dump=i' => \$step_dump,
 'comm_mod=f' => \$comm_mod,
+'rbond=f' => \$rbond,
+'kbond=f' => \$kbond,
 'np=i' => \$np,
 'Ncpu=i' => \$Ncpu,
 'help|h' => \$help);
@@ -62,6 +64,8 @@ if($help)
   -s step 
   -p spheres
   -x dx spheres dx
+  --rbond (0)
+  --kbond (40)
   -g gpuid
   --pressure
   --structure HP or PH
@@ -77,6 +81,10 @@ if($help)
 if($structure ne "PH") {$structure = "HP";}
 
 if(!$Ncpu){$Ncpu = 6;}
+
+if(!$rbond){$rbond = 0.0;}
+if(!$kbond){$kbond = 40.0;}
+if(!$k_stiff){$k_stiff = 20;}
 
 print STDERR "eps = ".$epsilon[0]." ".$epsilon[1]." ".$epsilon[2]."\n";
 
@@ -217,8 +225,9 @@ $dirname = $dirname."/";
 #$dx = sqrt(1.0 / $dens);
 $dx = $dens; # dens now size of grafting points' cell
 $radius = 0.5;
-$bond = 2.0*$radius;
-if($dx<(2.0*$bond)){$bond=$dx/2.0;}
+#$bond = 2.0*$radius;
+$bond = 0.5;
+#if($dx<(2.0*$bond)){$bond=$dx/2.0;}
 
 $delta_rho = $bond;
 
@@ -238,9 +247,9 @@ $totalbonds = $nbonds * $spheres;
 #$lx =  ( 2 * $N + $R_sphere ) +2;
 #$ly =  ( 2 * $N + $R_sphere ) +2;
 #$lz =  ( 2 * $N + $R_sphere ) +2;
-$lx =  ( $N + $R_sphere ) +2;
-$ly =  ( $N + $R_sphere ) +2;
-$lz =  ( $N + $R_sphere ) +2;
+$lx =  ( $N * $bond + $R_sphere ) +2;
+$ly =  ( $N * $bond + $R_sphere ) +2;
+$lz =  ( $N * $bond + $R_sphere ) +2;
 
 
 print "$desc \n";
@@ -517,6 +526,7 @@ $seed_create = int(rand(9999999));
 $seed_mol = int(rand(9999999));
 
 $num_mols = myround(3*$totallx*$totally*$totallz - $totalatoms);
+#$num_mols = myround(3*($totallx*$totally*$totallz - 4.0/3.0*3.14159*$R_sphere*$R_sphere*$R_sphere ) - $totalatoms);
 
 
 $xlo_bound = 0;
@@ -591,18 +601,22 @@ special_bonds lj/coul 1.0 1.0 1.0
 
 read_data $datafile
 
+region mysphere sphere 0 0 0 ${R_sphere} side out
+#fix sphwall all wall/region mysphere lj93 2.0 1.0 0.8583742
+
 region          bxx block ${xlo_bound} ${xhi_bound} ${ylo_bound} ${yhi_bound} ${zlo_bound} ${zhi_bound}
 
+region byy intersect 2 bxx mysphere
+
 create_atoms 5 random ${num_mols} ${seed_create} bxx 
+#create_atoms 5 random ${num_mols} ${seed_create} byy 
 
 bond_style harmonic
-bond_coeff 1 4.0 0.0
+bond_coeff 1 ${kbond} ${rbond}
 END
 
 if(!$k_stiff)
 {
-print SCRIPT <<END;
-END
 }
 else
 {
@@ -611,6 +625,8 @@ print SCRIPT <<END;
 bond_coeff 2 ${k_stiff} ${R_bond}
 END
 }
+
+
 
 print SCRIPT <<END;
 
@@ -623,9 +639,31 @@ mass * 1.0
 write_data      ${output_filename}.orig.data
 minimize 0.000000001 0.000000001 10000 10000
 
+group roots type 4
+group rest type 1 2 3 5
+group type2 type 2
+group type1 type 1 3
+
+END
+
+if($fix_particle)
+{
+print SCRIPT <<END;
+velocity roots zero linear
+fix root roots move linear 0 0 0 
+velocity rest create ${set_temp} $seed2
+fix             1 rest nve
+END
+}
+else
+{
+print SCRIPT <<END;
 velocity all create ${set_temp} $seed2
 fix             1 all nve
+END
+}
 
+print SCRIPT <<END;
 thermo_style    custom step temp pe epair etotal 
 thermo_modify flush yes
 thermo    1000
@@ -650,8 +688,17 @@ pair_coeff      3 3 25  4.5 1
 pair_coeff      4 4 25  4.5 1
 pair_coeff      5 5 25  4.5 1
 
-pair_coeff      2 5 75  4.5 1
-pair_coeff      1 2 50  4.5 1
+pair_coeff      2 5 200 4.5 1
+
+pair_coeff      1 2 75  4.5 1
+pair_coeff      2 3 75  4.5 1
+
+pair_coeff      1 5 20  4.5 1
+pair_coeff      2 5 20  4.5 1
+
+pair_coeff      1 4 1000  4.5 1
+pair_coeff      2 4 1000  4.5 1
+pair_coeff      3 4 1000  4.5 1
 
 #pair_coeff      1 2 25.23  4.5 1
 #pair_coeff      1 3 31.7  4.5 1
@@ -682,33 +729,6 @@ pair_coeff      1 2 50  4.5 1
 
 END
 
-
-if($k_stiff)
- {
-print SCRIPT <<END;
-
-group roots type 4
-group rest type 1 2 3
-group type2 type 2
-group type1 type 1 3
-END
- }
- else
- {
-print SCRIPT <<END;
-
-group roots type 3 4
-group rest type 1 2
-group type2 type 2
-group type1 type 1 3
-END
- }
-
-print SCRIPT <<END;
-#velocity roots zero linear
-
-#fix root roots move linear 0 0 0 
-END
 
 print SCRIPT <<END;
 
