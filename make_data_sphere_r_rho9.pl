@@ -47,6 +47,7 @@ GetOptions (
 'step_dump=i' => \$step_dump,
 'comm_mod=f' => \$comm_mod,
 'np=i' => \$np,
+'structure_step=f' => \$structure_step,
 'Ncpu=i' => \$Ncpu,
 'help|h' => \$help);
 if($help)
@@ -74,7 +75,7 @@ if($help)
   -h help\n");
  }
 
-if($structure ne "PH") {$structure = "HP";}
+#if($structure ne "PH") {$structure = "HP";}
 
 if(!$Ncpu){$Ncpu = 6;}
 
@@ -488,6 +489,18 @@ elsif($structure eq "HP")
 @epsBB = (  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  0.0, 0.0,  0.0, 0.0,  0.0, 0.0,  0.0, 0.0,  0.0, 0.0,  0.0, 0.0,  0.0, 0.0,  0.0, 0.0,  0.0, 0.0,  0.0, 0.0);
 @epsAB = (  0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0 , 5.0, 5.0 , 5.0,  5.0, 5.0,  5.0, 5.0,  5.0, 5.0,  5.0, 5.0,  5.0, 5.0,  5.0, 5.0,  5.0, 5.0,  5.0, 5.0);
 @epsAA = ( -0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.5,-1.0,-1.5,-2.0,-2.5,-3.0,-3.5,-4.0,-4.5,-5.0,-5.25,-5.5,-5.75,-6.0,-6.25,-6.5,-6.75,-7.0,-7.25,-7.5,-7.75,-8.0,-8.25,-8.5,-8.75,-9.0,-9.25,-9.5,-9.75, -10);
+}
+elsif($structure eq "PH2")
+{
+@epsAA = ();
+@epsAB = ();
+@epsBB = ();
+for($istep=0;$istep<=int(10.0/$structure_step+0.5);$istep++)
+ {
+ push @epsAA, 0.0;
+ push @epsAB, 5.0;
+ push @epsBB, -1*$istep*$structure_step;
+ }
 }
 else
 {
@@ -1090,7 +1103,8 @@ cd $dirname
 #/home/lazutin/src/lammps-11Aug17/src/lmp_cuda -sf gpu  -in $scriptname
 #/home/lazutin/src/lammps-16Mar18/src/lmp_cuda -sf gpu  -in $scriptname
 #/home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
-mpirun -np ${np} /home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
+#mpirun -np ${np} /home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
+mpirun -np ${np} /opt/lammps/lmp_ubuntu_24Dec20_kokkos_cuda_cmake -in $scriptname
 cd ..
 END
   }
@@ -1102,7 +1116,8 @@ cd $dirname
 #/home/lazutin/src/lammps-10Feb15/src/lmp_cuda -sf gpu  -in $scriptname
 #/home/lazutin/src/lammps-11Aug17/src/lmp_cuda -sf gpu  -in $scriptname
 #/home/lazutin/src/lammps-16Mar18/src/lmp_cuda -sf gpu  -in $scriptname
-/home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
+#/home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
+/opt/lammps/lmp_ubuntu_24Dec20_kokkos_cuda_cmake  -in $scriptname
 #mpirun -np 4 /home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
 cd ..
 END

@@ -21,7 +21,18 @@ open OUT, ">$outfile" or die "Cannot open $outfile: $!" ;
 
 while($str=<IN>)
  {
- if($str =~ /run 1000000/) 
+ if($str =~ /reset_timestep/) 
+   {
+   #print "run found\n"; 
+   last;
+   }
+ }
+
+
+while($str=<IN>)
+ {
+# if($str =~ /run 1000000/) 
+ if($str =~ /run /) 
    {
    #print "run found\n"; 
    last;
