@@ -48,6 +48,7 @@ GetOptions (
 'comm_mod=f' => \$comm_mod,
 'np=i' => \$np,
 'structure_step=f' => \$structure_step,
+'short' => \$short_flag,
 'Ncpu=i' => \$Ncpu,
 'help|h' => \$help);
 if($help)
@@ -491,6 +492,18 @@ elsif($structure eq "HP")
 @epsAA = ( -0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.5,-1.0,-1.5,-2.0,-2.5,-3.0,-3.5,-4.0,-4.5,-5.0,-5.25,-5.5,-5.75,-6.0,-6.25,-6.5,-6.75,-7.0,-7.25,-7.5,-7.75,-8.0,-8.25,-8.5,-8.75,-9.0,-9.25,-9.5,-9.75, -10);
 }
 elsif($structure eq "PH2")
+{
+@epsAA = ();
+@epsAB = ();
+@epsBB = ();
+for($istep=0;$istep<=int(10.0/$structure_step+0.5);$istep++)
+ {
+ push @epsAA, 0.0;
+ push @epsAB, 5.0;
+ push @epsBB, -1*$istep*$structure_step;
+ }
+}
+elsif($structure eq "PH3")
 {
 @epsAA = ();
 @epsAB = ();
@@ -1042,7 +1055,21 @@ END
 for($ip=1;$ip<scalar(@epsAA);$ip++)
  {
 #my $time_out = $time_mult[$ip]*$time;
-my $time_out = $time;
+if($structure eq "PH3")
+{
+if($epsBB[$ip]<=-5)
+ {
+$time_out = $time;
+ }
+ else
+ {
+$time_out = $time/10;
+ }
+}
+else
+{
+$time_out = $time;
+}
 
  print SCRIPT <<END;
 pair_coeff 1 1 yukawa $epsAA[$ip]
