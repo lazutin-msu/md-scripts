@@ -26,6 +26,7 @@ GetOptions (
 'sequence|s=s' => \$sequence,
 'repeat|r=i' => \$repeat,
 'time|t=i' => \$time,
+'longtime=i' => \$longtime,
 'g|gpuid=i' => \$gpu_num,
 'lomo' => \$lomo_flag,
 'c|cell=f' => \$cell_size,
@@ -571,6 +572,10 @@ for($i=0;$i<$Ntypes;$i++)
 printf SCRIPT "run %d\n",$time1;
 }
 
+if($longtime)
+ {
+ $time2 = $longtime;
+ }
 print SCRIPT <<END;
 
 #run ${time} 
