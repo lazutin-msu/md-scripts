@@ -177,9 +177,9 @@ return $desc;
 
 sub dirname
 {
-my $NA = shift
-my $NB = shift
-my $NB2 = shift
+my $NA = shift;
+my $NB = shift;
+my $NB2 = shift;
 my $time = shift;
 my $N = shift;
 my $cell_size = shift;
