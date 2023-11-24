@@ -23,20 +23,24 @@ close(LOG);
 
 GetOptions (
 'datafile|f=s' => \$datafile,
-'sequence|s=s' => \$sequence,
+#'sequence|s=s' => \$sequence,
+'NA=i' => \$NA,
+'NB=i' => \$NB,
+'NB2=i' => \$NB2,
+'phi=f' => \$phi,
 'repeat|r=i' => \$repeat,
 'time|t=i' => \$time,
 'g|gpuid=i' => \$gpu_num,
 'lomo' => \$lomo_flag,
 'c|cell=f' => \$cell_size,
-'e|energy=s' => \$energyfile,
+#'e|energy=s' => \$energyfile,
+'chi' => \$chi,
 'np=i' => \$np,
 'Ncpu=i' => \$Ncpu,
 'relax=i' => \$trelax,
 'noanneal' => \$flag_noanneal,
 'kbond=f' => \$kbond,
 'rbond=f' => \$rbond,
-'NB=i' => \$NB,
 'stiff=f' => \$stiff,
 'help|h' => \$help);
 if($help)
@@ -44,12 +48,16 @@ if($help)
  die("Usage make_data.pl options
   -f datafile initial configuration
   -s sequence O   C   B
+  --NA length of A block
+  --NB length of B block
+  --NB2 length of B homopolymer
+  --phi volume ratio of homopolymer
   -r repeat = 1
   -t time = 2000000
   -g gpuid
   --lomo to calc on Lomonosov-2
   -c --cell cell size = 40
-  -e --energy energy file (matrix 5x5 of chi_ij)
+  --chi chi_AB
   --np number of cores to run on
   --Ncpu number of tasks which run in parallel
   --noanneal no annealing
@@ -66,11 +74,11 @@ if(!$cell_size){$cell_size = 40;}
 if(!$kbond){$kbond = 40.0;}
 if(!$rbond){$rbond = 1.0;}
 
-if($sequence !~ /^[OCB]+$/) {die "sequence $sequence should contain only O C B \n";}
+#if($sequence !~ /^[OCB]+$/) {die "sequence $sequence should contain only O C B \n";}
 
-$countO = $sequence =~ tr/O//;
-$countC = $sequence =~ tr/C//;
-$countB = $sequence =~ tr/B//;
+#$countO = $sequence =~ tr/O//;
+#$countC = $sequence =~ tr/C//;
+#$countB = $sequence =~ tr/B//;
 #$countO = length( $str =~ s/[^\Q$char\E]//rg )
 #$countC = $str =~ tr/C//;
 #$countB = $str =~ tr/B//;
@@ -131,40 +139,52 @@ $gpuid = $gpu_num;
 
 sub description
 {
-my $sequence = shift;
+my $NA = shift
+my $NB = shift
+my $NB2 = shift
 my $time = shift;
-my $N = shift;
 my $cell_size = shift;
 
-my $desc = sprintf "#dpd_s%s_c%d_t%d",$sequence,$cell_size,$time;
+my $desc = sprintf "#dpd_A%dB%d_B%d_c%d_t%d",$NA,$NB,$NB2,$cell_size,$time;
 return $desc;
 }
 
-sub datafilename
+sub datafilename1
 {
-my $sequence = shift;
+my $NA = shift
+my $NB = shift
+#my $NB2 = shift
 my $time = shift;
 my $N = shift;
 my $cell_size = shift;
-my $count_O = shift;
-my $count_C = shift;
-my $count_B = shift;
 
-my $desc = sprintf "s%s_O%dC%dB%d_t%d_c%d_n%d.ml",$sequence,$count_O,$count_C,$count_B,$time,$cell_size,$N;
+my $desc = sprintf "A%dB%d_t%d_c%d_n%d.ml",$NA,$NB,$time,$cell_size,$N;
+return $desc;
+}
+
+sub datafilename2
+{
+#my $NA = shift
+#my $NB = shift
+my $NB2 = shift
+my $time = shift;
+my $N = shift;
+my $cell_size = shift;
+
+my $desc = sprintf "B%d_t%d_c%d_n%d.ml",$NB2,$time,$cell_size,$N;
 return $desc;
 }
 
 sub dirname
 {
-my $sequence = shift;
+my $NA = shift
+my $NB = shift
+my $NB2 = shift
 my $time = shift;
 my $N = shift;
 my $cell_size = shift;
-my $count_O = shift;
-my $count_C = shift;
-my $count_B = shift;
 
-my $desc = sprintf "s%s_O%dC%dB%d_t%d_c%d_n%d",$sequence,$count_O,$count_C,$count_B,$time,$cell_size,$N;
+my $desc = sprintf "A%dB%d_B%d_t%d_c%d_n%d",$NA,$NB,$NB2,$time,$cell_size,$N;
 return $desc;
 }
 
@@ -179,7 +199,7 @@ printf "R_sphere = %f\nchains = %d\nlength = %d \ngpuid= %d\n",$R_sphere,$chains
 
 $Ndir = 1;
 
-$desc = description($sequence, $time, $cell_size);
+$desc = description($NA, $NB, $NB2, $time, $cell_size);
 
 if($datafile)
 {
@@ -188,15 +208,16 @@ $is_datafile = 1;
 else
 {
 $is_datafile = 0;
-$datafile = datafilename($sequence, $time, $Ndir, $cell_size,$countO,$countC,$countB);
+$datafile1 = datafilename1($NA, $NB, $time, $Ndir, $cell_size);
+$datafile2 = datafilename2($NB2, $time, $Ndir, $cell_size);
 }
 
-$dirname = dirname($sequence, $time, $Ndir, $cell_size,$countO,$countC,$countB);
+$dirname = dirname($NA, $NB, $NB2, $time, $Ndir, $cell_size);
 $scriptname = "script";
 $shellname_all = "run.sh";
 #$shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
 $shellname = sprintf "run_cpu%d.sh",$cpuid;  #look at run.sh too
-$output_filename = dirname($sequence, $time, $Ndir, $cell_size,$countO,$countC,$countB);
+$output_filename = dirname($NA, $NB, $NB2, $time, $Ndir, $cell_size);
 
 if( -d $dirname)
  {
@@ -204,9 +225,9 @@ if( -d $dirname)
  while(-d $dirname)
   {
   $Ndir++;
-  $dirname = dirname($sequence, $time, $Ndir, $cell_size,$countO,$countC,$countB);
+  $dirname = dirname($NA, $NB, $NB2, $time, $Ndir, $cell_size);
 #  $shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
-  $output_filename = dirname($sequence, $time, $Ndir, $cell_size,$countO,$countC,$countB);
+  $output_filename = dirname($NA, $NB, $NB2, $time, $Ndir, $cell_size);
   }
  }
  
@@ -217,10 +238,10 @@ $dirname = $dirname."/";
 
 $bond = 1.0;
 
-$natoms = 2 * $chains * $N + 1;
+#$natoms = 2 * $chains * $N + 1;
 
-$totalatoms = $natoms * $spheres;
-$totalbonds = $nbonds * $spheres;
+#$totalatoms = $natoms * $spheres;
+#$totalbonds = $nbonds * $spheres;
 
 $lx = $cell_size;
 $ly = $cell_size;
@@ -231,15 +252,15 @@ $iatom = 1;
 $ibond = 1;
 $iangle = 1;
 
-$N = length($sequence);
+#$N = length($sequence);
 
-  for($imono=0;$imono<$N;$imono++)
+  for($imono=0;$imono<$NA;$imono++)
    {
    $x[$iatom] = $imono * $bond;
    $y[$iatom] = 0;
    $z[$iatom] = 0;
 
-   $type[$iatom] = 1; # BB
+   $type[$iatom] = 1; # A
    
    if($imono!=0)
     {
@@ -251,108 +272,89 @@ $N = length($sequence);
    $iatom++;
    }
 
-  for($imono=0;$imono<$N;$imono++)
+  for($imono=$NA;$imono<$NA+$NB;$imono++)
    {
-   my $char = substr($sequence,$imono,1);
-   if($char eq "O")
-    {
-    for($io = 0; $io<4; $io++)
-     {
-     $x[$iatom] = $imono * $bond;
-     $y[$iatom] = ($io + 1) * $bond;
-     $z[$iatom] = 0;
-     $type[$iatom] = 2; # CCO
-     if($io!=0)
-      {
-      $at1_bond[$ibond] = $iatom - 1;
-      $at2_bond[$ibond] = $iatom;
-      $bond_type[$ibond] = 1;
-      $ibond++;
-      }
-      else
-      {
-      $at1_bond[$ibond] = $imono + 1;
-      $at2_bond[$ibond] = $iatom;
-      $bond_type[$ibond] = 1;
-      $ibond++;
-      }
-     $iatom++;
-     } # for io
-    }
+   $x[$iatom] = $imono * $bond;
+   $y[$iatom] = 0;
+   $z[$iatom] = 0;
+
+   $type[$iatom] = 2; # B
+   
+#   if($imono!=0)
+#    {
+    $at1_bond[$ibond] = $iatom - 1;
+    $at2_bond[$ibond] = $iatom;
+    $bond_type[$ibond] = 1;
+    $ibond++;
+#    }
+   $iatom++;
    }
 
-  for($imono=0;$imono<$N;$imono++)
+
+
+# beads were made
+
+#(($ibond-1)==$totalbonds) or die "ibond $ibond != totalbonds $totalbonds";
+$totalatoms = $iatom-1;
+$totalbonds = $ibond-1;
+
+$totalatoms1 = $totalatoms;
+
+if(!$is_datafile)
+{
+print "writing to $datafile \n";
+open(OUT,">".$dirname.$datafile1) or die "cant create file ".$dirname.$datafile1;
+
+print OUT $desc."\n\n";
+printf OUT "%11d atoms\n", $totalatoms;
+printf OUT "%11d bonds\n", $totalbonds;
+
+print OUT "\nCoords\n\n";
+
+for($iatom=1;$iatom<=$totalatoms;$iatom++)
+ {
+ printf OUT "%6d %8.2f %8.2f %8.2f\n",$iatom,$x[$iatom],$y[$iatom],$z[$iatom];
+ }
+
+print OUT "\nTypes\n\n";
+
+for($iatom=1;$iatom<=$totalatoms;$iatom++)
+ {
+ printf OUT "%6d %6d\n",$iatom,$type[$iatom];
+ }
+
+print OUT "\nBonds\n\n";
+
+for($ibond=1;$ibond<=$totalbonds;$ibond++)
+ {
+ printf OUT "%6d %6d %6d %6d\n",$ibond,$bond_type[$ibond],$at1_bond[$ibond],$at2_bond[$ibond];
+ }
+
+close(OUT);
+
+$iatom = 1;
+$ibond = 1;
+$iangle = 1;
+
+#$N = length($sequence);
+
+  for($imono=0;$imono<$NB2;$imono++)
    {
-   my $char = substr($sequence,$imono,1);
-   if($char eq "C")
+   $x[$iatom] = $imono * $bond;
+   $y[$iatom] = 0;
+   $z[$iatom] = 0;
+
+   $type[$iatom] = 2; # B
+   
+   if($imono!=0)
     {
-
-     $x[$iatom] = $imono * $bond;
-     $y[$iatom] = $bond;
-     $z[$iatom] = 0;
-     $type[$iatom] = 3; # charged 1
-      $at1_bond[$ibond] = $imono + 1;
-      $at2_bond[$ibond] = $iatom;
-      $bond_type[$ibond] = 1;
-      $ibond++;
-     $iatom++;
-
+    $at1_bond[$ibond] = $iatom - 1;
+    $at2_bond[$ibond] = $iatom;
+    $bond_type[$ibond] = 1;
+    $ibond++;
     }
+   $iatom++;
    }
-
-  for($imono=0;$imono<$N;$imono++)
-   {
-   my $char = substr($sequence,$imono,1);
-   if($char eq "B")
-    {
-
-     $x[$iatom] = $imono * $bond;
-     $y[$iatom] = $bond;
-     $z[$iatom] = 0;
-     $type[$iatom] = 4; # benzene
-      $at1_bond[$ibond] = $imono + 1;
-      $at2_bond[$ibond] = $iatom;
-      $bond_type[$ibond] = 1;
-      $ibond++;
-     $iatom++;
-
-    if($NB>1)
-     {
-     for($ib=0;$ib<($NB-1);$ib++)
-      {
-     $x[$iatom] = $imono * $bond;
-     $y[$iatom] = $bond + $bond*($ib+1);
-     $z[$iatom] = 0;
-     $type[$iatom] = 4; # benzene
-      $at1_bond[$ibond] = $iatom - 1;
-      $at2_bond[$ibond] = $iatom;
-      $bond_type[$ibond] = 1;
-      $ibond++;
-      if($ib==0)
-       {
-       $at1_angle[$iangle] = $imono + 1;
-       $at2_angle[$iangle] = $iatom - 1; 
-       $at3_angle[$iangle] = $iatom;
-       $ang_type[$iangle] = 1;
-       $iangle++;
-       }
-       else
-       {
-       $at1_angle[$iangle] = $iatom - 2;
-       $at2_angle[$iangle] = $iatom - 1; 
-       $at3_angle[$iangle] = $iatom;
-       $ang_type[$iangle] = 1;
-       $iangle++;
-       }
-     $iatom++;
-      
-      }
-     
-     }
-
-    }
-   }
-
 
 # beads were made
 
@@ -361,10 +363,12 @@ $totalatoms = $iatom-1;
 $totalbonds = $ibond-1;
 $totalangles = $iangle-1;
 
+$totalatoms2 = $totalatoms;
+
 if(!$is_datafile)
 {
 print "writing to $datafile \n";
-open(OUT,">".$dirname.$datafile) or die "cant create file ".$dirname.$datafile;
+open(OUT,">".$dirname.$datafile2) or die "cant create file ".$dirname.$datafile2;
 
 print OUT $desc."\n\n";
 printf OUT "%11d atoms\n", $totalatoms;
@@ -406,6 +410,7 @@ for($iangle=1;$iangle<=$totalangles;$iangle++)
 }
 
 close(OUT);
+
 }
 else
 {
@@ -417,10 +422,15 @@ copy($datafile,$dirname.$datafile) or die "Copy failed: $!";
 #$gpuid = int(rand(3));
 $seed = int(rand(9999999));
 $seed2 = int(rand(9999999));
-$seed_create = int(rand(9999999));
-$seed_mol = int(rand(9999999));
+$seed_create1 = int(rand(9999999));
+$seed_mol1 = int(rand(9999999));
+$seed_create2 = int(rand(9999999));
+$seed_mol2 = int(rand(9999999));
 
-$num_mols = myround(3*$lx*$ly*$lz/$totalatoms);
+#$num_mols = myround(3*$lx*$ly*$lz/$totalatoms);
+
+$num_mols1 = myround(3*$lx*$ly*$lz*(1.0-$phi)/$totalatoms1);
+$num_mols2 = myround(3*$lx*$ly*$lz*$phi/$totalatoms2);
 
 
 $xlo_bound = 0;
@@ -461,43 +471,27 @@ atom_style full
 region          bxx block ${xlo_bound} ${xhi_bound} ${ylo_bound} ${yhi_bound} ${zlo_bound} ${zhi_bound}
 
 END
-if($totalangles>0)
-{
-print SCRIPT <<END;
-create_box      6 bxx bond/types 1 extra/bond/per/atom 10 extra/special/per/atom 20 angle/types 1 extra/angle/per/atom 10
-END
-}
-else
-{
+
 print SCRIPT <<END;
 create_box      6 bxx bond/types 1 extra/bond/per/atom 10 extra/special/per/atom 20
 END
-}
-print SCRIPT <<END;
-molecule 1 ${datafile}
 
-create_atoms 0 random ${num_mols} ${seed_create} bxx mol 1 ${seed_mol}
+print SCRIPT <<END;
+molecule 1 ${datafile1}
+molecule 2 ${datafile2}
+
+create_atoms 0 random ${num_mols1} ${seed_create1} bxx mol 1 ${seed_mol1}
+create_atoms 0 random ${num_mols2} ${seed_create2} bxx mol 2 ${seed_mol2}
 
 bond_style harmonic
 bond_coeff 1 ${kbond} ${rbond} 
 
 END
 
-if($totalangles>0)
-{
-print SCRIPT <<END;
-angle_style harmonic
-angle_coeff 1 ${stiff} 180
-END
-}
-
 print SCRIPT <<END;
 
-# type(C) = 1 - backbone
-# type(O) = 2 - O-C-C
-# type(S) = 3 - uncharged half
-# type(N) = 4 - charged half
-# type(H) = 5 - Ring - Et
+# type(A) = 1 
+# type(B) = 2 
 
 pair_style      dpd 1.0 1.0 ${seed2}
 
@@ -558,50 +552,6 @@ pair_coeff      5 5 25  4.5 1
 
 END
 
-if($energyfile)
- {
- open(EN,"<".$energyfile) or die "Cannot open $energyfile : $!";
- for($i=0;$i<5;$i++)
-  {
-  $str = <EN>;
-  $str =~ s/^\s+//;
-  @arr = split /\s+/, $str;
-  for($j=0;$j<5;$j++)
-   {
-   $chi[$i][$j] = $arr[$j];
-   }
-  }
- close(EN);
- }
- else
- {
-my @as = ( [25, 26.52, 25.02, 26.03, 32.83],
-           [25,    25, 26.18, 30.08, 49.43],
-           [25,    25,    25, 26.35, 95.43],
-           [25,    25,    25,    25,170.72],
-           [25,    25,    25,    25,    25] );
-
-for($i=0;$i<5;$i++)
- {
- for($j=0;$j<5;$j++)
-  {
-  $chi[$i][$j] = ($as[$i][$j]-25)/3.27;
-  }
- }
- 
- } # energyfile
-
-print "chi\n";
-for($i=0;$i<$Ntypes;$i++)
- {
- for($j=0;$j<$Ntypes;$j++)
-  {
-  printf " %f",$chi[$i][$j];
-  }
- print "\n";
- }
-
- 
 $N = 10;
 #$time1 = $time/$N;
 $time1 = $time/$N/2;
@@ -610,13 +560,7 @@ $time2 = $time/2;
 if($flag_noanneal)
 {
 
-for($i=0;$i<$Ntypes;$i++)
- {
- for($j=$i;$j<$Ntypes;$j++)
-  {
-  printf SCRIPT "pair_coeff     %d %d %.2f %.1f %d\n",$i+1,$j+1,$chi[$i][$j]*3.27+25,4.5,1;
-  }
- }
+  printf SCRIPT "pair_coeff      1  2 %.2f %.1f %d\n",$chi*3.27+25,4.5,1;
 printf SCRIPT "run %d\n",$time;
 
 }
@@ -626,13 +570,8 @@ else
 for($k=1;$k<=$N;$k++)
 {
 
-for($i=0;$i<$Ntypes;$i++)
- {
- for($j=$i;$j<$Ntypes;$j++)
-  {
-  printf SCRIPT "pair_coeff     %d %d %.2f %.1f %d\n",$i+1,$j+1,$chi[$i][$j]/$N*$k*3.27+25,4.5,1;
-  }
- }
+  printf SCRIPT "pair_coeff      1  2 %.2f %.1f %d\n",$chi/$N*$k*3.27+25,4.5,1;
+
 printf SCRIPT "run %d\n",$time1;
 }
 
