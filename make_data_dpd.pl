@@ -605,7 +605,8 @@ print SH <<END;
 cd $dirname
 #/home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
 #mpirun -np 4 /home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
-sbatch -n 256 --time=1-23:30:00 -p compute_prio ompi /home/lazutin_2123/_scratch/src/lammps-29Oct20/build-nogpu/lmp  -in ${scriptname}
+#sbatch -n 256 --time=1-23:30:00 -p compute_prio ompi /home/lazutin_2123/_scratch/src/lammps-29Oct20/build-nogpu/lmp  -in ${scriptname}
+sbatch -n 56 --time=23:30:00 -p compute ompi /home/lazutin_2123/_scratch/src/lammps-29Oct20/build-nogpu/lmp  -in ${scriptname}
 cd ..
 END
 }
