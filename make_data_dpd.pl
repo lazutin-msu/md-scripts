@@ -139,9 +139,9 @@ $gpuid = $gpu_num;
 
 sub description
 {
-my $NA = shift
-my $NB = shift
-my $NB2 = shift
+my $NA = shift;
+my $NB = shift;
+my $NB2 = shift;
 my $time = shift;
 my $cell_size = shift;
 
@@ -151,8 +151,8 @@ return $desc;
 
 sub datafilename1
 {
-my $NA = shift
-my $NB = shift
+my $NA = shift;
+my $NB = shift;
 #my $NB2 = shift
 my $time = shift;
 my $N = shift;
@@ -166,7 +166,7 @@ sub datafilename2
 {
 #my $NA = shift
 #my $NB = shift
-my $NB2 = shift
+my $NB2 = shift;
 my $time = shift;
 my $N = shift;
 my $cell_size = shift;
@@ -331,6 +331,7 @@ for($ibond=1;$ibond<=$totalbonds;$ibond++)
  }
 
 close(OUT);
+}
 
 $iatom = 1;
 $ibond = 1;
