@@ -34,7 +34,7 @@ GetOptions (
 'lomo' => \$lomo_flag,
 'c|cell=f' => \$cell_size,
 #'e|energy=s' => \$energyfile,
-'chi' => \$chi,
+'chi=f' => \$chi,
 'np=i' => \$np,
 'Ncpu=i' => \$Ncpu,
 'relax=i' => \$trelax,
@@ -524,7 +524,8 @@ timestep        0.03
 
 restart  500000  restart.${output_filename}
 
-dump            1 all atom 100000 ${output_filename}.lammpstrj
+#dump            1 all atom 100000 ${output_filename}.lammpstrj
+dump            1 all custom 100000 ${output_filename}.lammpstrj id type mol xu yu zu ix iy iz
 
 END
 
