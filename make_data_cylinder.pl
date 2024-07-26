@@ -4,12 +4,12 @@ use File::Copy;
 use Math::Trig;
 use POSIX;
     
-$dens = 8;
+$dens = 3.0; # hex lattice size
 $N = 50;
-$chains = 10; #10x10
+#$chains = 10; #10x10
 $time = 2000000;
 $repeat = 1;
-$R_sphere = 30;
+$R_sphere = 5;
 
 $Ngpu = 1;
 #$Ncpu = 6;
@@ -36,7 +36,7 @@ GetOptions (
 'time|t=i' => \$time,
 'step|s=f' => \$step,
 'g|gpuid=i' => \$gpu_num,
-'p|spheres=i' => \$spheres,
+#'p|spheres=i' => \$spheres,
 'x|dx=f' => \$spheres_dx,
 'pressure=f' => \$pressure,
 'structure=s' => \$structure,
@@ -48,20 +48,21 @@ GetOptions (
 'comm_mod=f' => \$comm_mod,
 'np=i' => \$np,
 'structure_step=f' => \$structure_step,
+'short' => \$short_flag,
 'Ncpu=i' => \$Ncpu,
 'help|h' => \$help);
 if($help)
  {
  die("Usage make_data.pl options
   -f datafile initial configuration
-  -d density = 8
+  -d density - hex lattice size = 3
   -c chains = 10
   -n length = 50
-  -a rsphere = 30
+  -a rsphere = 5
   -r repeat = 1
   -t time = 2000000
   -s step 
-  -p spheres
+#  -p spheres
   -x dx spheres dx
   -g gpuid
   --pressure
@@ -209,147 +210,161 @@ if( -d $dirname)
 $dirname = $dirname."/";
 
 #$dx = sqrt(1.0 / $dens);
-$dx = $dens; # dens now size of grafting points' cell
+#$dx = $dens; # dens now size of grafting points' cell
+
+$m_real = 2 * pi / asin( 0.5* $dens/$R_sphere )
+$m_int = int($m_real + 0.5)
+
+$drad = 2.0 * pi / $m_int
+$dx = 2.0 * $R_sphere * sin( $drad )
+
 $radius = 0.5;
 $bond = 2.0*$radius;
 if($dx<(2.0*$bond)){$bond=$dx/2.0;}
 
 $delta_rho = $bond;
 
-$natoms = 2 * $chains * $N + 1;
+#$natoms = 2 * $chains * $N + 1;
+$natoms = 2 * $chains * $N ;
+
 if(!$k_stiff)
  {
 $nbonds = (2*$N - 1) * $chains;
  }
  else
  {
-$nbonds = (2*$N - 1) * $chains + $chains ;
+#$nbonds = (2*$N - 1) * $chains + $chains ;
+$nbonds = (2*$N - 1) * $chains ;
  }
 
-$totalatoms = $natoms * $spheres;
-$totalbonds = $nbonds * $spheres;
+#$totalatoms = $natoms * $spheres;
+#$totalbonds = $nbonds * $spheres;
+$totalatoms = $natoms ;
+$totalbonds = $nbonds ;
 
 #$lx =  ( 2 * $N + $R_sphere ) +2;
 #$ly =  ( 2 * $N + $R_sphere ) +2;
 #$lz =  ( 2 * $N + $R_sphere ) +2;
 $lx =  ( $N + $R_sphere ) +2;
 $ly =  ( $N + $R_sphere ) +2;
-$lz =  ( $N + $R_sphere ) +2;
 
+$dz = $dx * sqrt(3.0) * 0.5
+$m_z_real = $R_sphere / $dz
+$m_z_int = int($m_z_real + 0.5)
+
+#$lz =  ( $N + $R_sphere ) +2;
+$lz = $m_z_int * $dz
 
 print "$desc \n";
 $ibond = 1;
 
-$N_circle = 10;
+#$Nspheres = ceil( $spheres ** (1/3) );
+$Nspheres = 1;
+#$totallx = $Nspheres * $spheres_dx + 2* $lx;
+#$totally = $Nspheres * $spheres_dx + 2* $ly;
+#$totallz = $Nspheres * $spheres_dx + 2* $lz;
+#$totallx = ($Nspheres - 1) * $spheres_dx + 2* $lx;
+#$totally = ($Nspheres - 1) * $spheres_dx + 2* $ly;
+#$totallz = ($Nspheres - 1) * $spheres_dx + 2* $lz;
 
-$pi = 3.14159
-$delta_phi = 2.0 * $pi / $N_circle;
-$delta_phi2 = $pi / $N_circle;
+$totallx = 2* $lx;
+$totally = 2* $ly;
+$totallz = 2* $lz;
 
-#$hex_size = $delta_phi * $R_sphere;
-$dr_size = 2.0 * sin ( $delta_phi2 );
-$hex_size = ($dr_size / 2.0 ) / sin 30
 
-$dz_1 = $hex_size;
-$dz_2 = $hex_size;
+$isphere = 0;
 
-printf "hex size %f\n",$hex_size;
-
-$z_base = 0;
-$iatom = 1;
-#$phi_base = 0;
-$phi_flag = 1;
-
-while($z_base<$lz)
-{
-
-if($phi_flag)
-   {
-   $phi_base = 0;
-   }
-   else
-   {
-   $phi_base = $delta_phi2;
-   }
-
-  for($iphi=0;$iphi<$N_circle;$iphi++)
-   {
-   
-   $x[$iatom] = $R_sphere * cos($iphi * $delta_phi + $phi_base);
-   $y[$iatom] = $R_sphere * cos($iphi * $delta_phi + $phi_base);
-   $z[$iatom] = $z_base;
-   
-   $iatom++;
-   }
-
-if($phi_flag)
-   {
-   $z_base = $z_base + 
-   }
-   else
-   {
-   
-   }
-if($phi_base<1e-6)
+SPHERES: for($iz=0;$iz<$Nspheres;$iz++)
  {
- $z_base = $z_base + 
- }
- else
- {
- $z_base = $z_base +
- }
-
-}
-
-$delta_phi = 1/ $R_sphere; 
-
-  $x[$natoms * $isphere + 1] = $ix * $spheres_dx + $lx +    0;
-  $y[$natoms * $isphere + 1] = $iy * $spheres_dx + $ly +    0;
-  $z[$natoms * $isphere + 1] = $iz * $spheres_dx + $lz +    0;
-  $type[$natoms * $isphere + 1] = 4;
-  $mol[$natoms * $isphere + 1] = ($chains + 1) * $isphere + 1;
-  $coreid[$natoms * $isphere + 1] = $isphere + 1;
-  $partnum[$natoms * $isphere + 1] = $isphere + 1;
-
-for($k=0;$k<$chains;$k++)
+ for($iy=0;$iy<$Nspheres;$iy++)
+  {
+  for($ix=0;$ix<$Nspheres;$ix++)
    {
-    $r    = sqrt(1.0-$z*$z);
-    ($xchain, $ychain, $zchain) = (cos($long)*$r, sin($long)*$r, $z);
-   my $rho   = sqrt($r*$r+$z*$z)*$R_sphere;
-   my $phi   = $sp_long;
-   my $theta = atan2($r,$z);
-    $z    = $z - $sp_dz;
-    $sp_long = $sp_long + $sp_dlong;
-   $rho = $rho + $delta_rho * 0.5;
+   
+
+#$sp_dlong = pi*(3.0-sqrt(5.0)); #  /* ~2.39996323 */
+#$sp_dz    = 2.0/$chains;
+#$sp_long = 0;
+#$z    = 1.0 - $sp_dz/2.0;
+
+#$delta_phi = 1/ $R_sphere; 
+
+#  $x[$natoms * $isphere + 1] = $ix * $spheres_dx + $lx +    0;
+#  $y[$natoms * $isphere + 1] = $iy * $spheres_dx + $ly +    0;
+#  $z[$natoms * $isphere + 1] = $iz * $spheres_dx + $lz +    0;
+#  $type[$natoms * $isphere + 1] = 4;
+#  $mol[$natoms * $isphere + 1] = ($chains + 1) * $isphere + 1;
+#  $coreid[$natoms * $isphere + 1] = $isphere + 1;
+#  $partnum[$natoms * $isphere + 1] = $isphere + 1;
+
+#for($k=0;$k<$chains;$k++)
+for($kz=0;$kz<$m_z_int;$kz++)
+ {
+ if($kz % 2 == 0)
+  {
+  $phi0 = 0.
+  }
+  else
+  {
+  $phi0 = $drad * 0.5
+  }
+  
+ for($krad=0;$krad<$m_int;$krad++)
+   {
+#    $r    = sqrt(1.0-$z*$z);
+#    ($xchain, $ychain, $zchain) = (cos($long)*$r, sin($long)*$r, $z);
+    
+    $phi = $phi0 + $drad * $krad
+    $xchain = $R_sphere * cos( $phi )
+    $ychain = $R_sphere * sin( $phi )
+    $zchain = $kz * $dz
+#   my $rho   = sqrt($r*$r+$z*$z)*$R_sphere;
+#   my $phi   = $sp_long;
+#   my $theta = atan2($r,$z);
+#    $z    = $z - $sp_dz;
+#    $sp_long = $sp_long + $sp_dlong;
+#   $rho = $rho + $delta_rho * 0.5;
 
   for($imono=0;$imono<$N;$imono++)
    {
-   $iatom = 2*$imono + 2*$k * $N + 2;
+#   $iatom = 2*$imono + 2*$k * $N + 1;
+   $iatom = 2*$imono + ($kz*$m_int + $krad) * 2 * $N + 1;
 
-   $x[$natoms * $isphere + $iatom] = $ix * $spheres_dx + $lx + $rho * sin($theta) * cos($phi);
-   $y[$natoms * $isphere + $iatom] = $iy * $spheres_dx + $ly + $rho * sin($theta) * sin($phi);
-   $z[$natoms * $isphere + $iatom] = $iz * $spheres_dx + $lz + $rho * cos($theta) ;
-   if($z[$iatom]>0)
-    {
-    $my_delta_theta = $bond / ($R_sphere + $imono * $delta_rho);
-    }
-    else
-    {
-    $my_delta_theta = -$bond / ($R_sphere  + $imono * $delta_rho);
-    }
+#   $x[$natoms * $isphere + $iatom] = $ix * $spheres_dx + $lx + $rho * sin($theta) * cos($phi);
+#   $y[$natoms * $isphere + $iatom] = $iy * $spheres_dx + $ly + $rho * sin($theta) * sin($phi);
+#   $z[$natoms * $isphere + $iatom] = $iz * $spheres_dx + $lz + $rho * cos($theta) ;
+   $rho_mono = $R_sphere + $radius * $imono
+   $x[$natoms * $isphere + $iatom] = $lx + $rho_mono * cos($phi);
+   $y[$natoms * $isphere + $iatom] = $ly + $rho_mono * sin($phi);
+   $z[$natoms * $isphere + $iatom] = $lz + $zchain ;
+
+#   if($z[$iatom]>0)
+#    {
+#    $my_delta_theta = $bond / ($R_sphere + $imono * $delta_rho);
+#    }
+#    else
+#    {
+#    $my_delta_theta = -$bond / ($R_sphere  + $imono * $delta_rho);
+#    }
+   $my_delta_phi = atan( $bond / $rho_mono )
 
    $type[$natoms * $isphere + $iatom] = 1;
    if($imono==0){$type[$natoms * $isphere + $iatom] = 3; $coreid[$natoms * $isphere + $iatom] = $isphere + 1;}
-   $mol[$natoms * $isphere + $iatom] = ($chains + 1) * $isphere + $k + 2;
+   $mol[$natoms * $isphere + $iatom] = ($chains + 1) * $isphere + ($kz*$m_int + $krad) + 1;
    $partnum[$natoms * $isphere + $iatom] = $isphere + 1;
 
 
-   $x[$natoms * $isphere + $iatom+1] = $ix * $spheres_dx + $lx + $rho * sin($theta + $my_delta_theta) * cos($phi);
-   $y[$natoms * $isphere + $iatom+1] = $iy * $spheres_dx + $ly + $rho * sin($theta + $my_delta_theta) * sin($phi);
-   $z[$natoms * $isphere + $iatom+1] = $iz * $spheres_dx + $lz + $rho * cos($theta + $my_delta_theta);
-   $rho = $rho + $delta_rho; 
+#   $x[$natoms * $isphere + $iatom+1] = $ix * $spheres_dx + $lx + $rho * sin($theta + $my_delta_theta) * cos($phi);
+#   $y[$natoms * $isphere + $iatom+1] = $iy * $spheres_dx + $ly + $rho * sin($theta + $my_delta_theta) * sin($phi);
+#   $z[$natoms * $isphere + $iatom+1] = $iz * $spheres_dx + $lz + $rho * cos($theta + $my_delta_theta);
+
+   $x[$natoms * $isphere + $iatom+1] = $lx + $rho_mono * cos($phi + $my_delta_phi);
+   $y[$natoms * $isphere + $iatom+1] = $ly + $rho_mono * sin($phi + $my_delta_phi);
+   $z[$natoms * $isphere + $iatom+1] = $lz + $zchain;
+
+#   $rho = $rho + $delta_rho; 
    $type[$natoms * $isphere + $iatom+1] = 2;
-   $mol[$natoms * $isphere + $iatom+1] = ($chains + 1) * $isphere + $k + 2;
+   $mol[$natoms * $isphere + $iatom+1] = ($chains + 1) * $isphere + ($kz*$m_int + $krad) + 2;
    $partnum[$natoms * $isphere + $iatom+1] = $isphere + 1;
 if(!$k_stiff)
  {
@@ -370,22 +385,34 @@ if(!$k_stiff)
     $bond_type[$ibond] = 1;
     $ibond++;
     }
-    else
-    {
-    $at1_bond[$ibond] = $natoms * $isphere + 1;
-    $at2_bond[$ibond] = $natoms * $isphere + $iatom;
-    $bond_type[$ibond] = 2;
-    $ibond++;
-    }
+#    else
+#    {
+#    $at1_bond[$ibond] = $natoms * $isphere + 1;
+#    $at2_bond[$ibond] = $natoms * $isphere + $iatom;
+#    $bond_type[$ibond] = 2;
+#    $ibond++;
+#    }
  }
    $at1_bond[$ibond] = $natoms * $isphere + $iatom;
    $at2_bond[$ibond] = $natoms * $isphere + $iatom+1;
    $bond_type[$ibond] = 1;
    $ibond++;
+   } # imono
+   } # krad
+   } # kz
+
+  if($isphere<$spheres-1)
+   {
+   $isphere++;
    }
+   else
+   {
+   last SPHERES;
    }
 
-
+  } # ix
+ } # iy
+} # iz
 
 (($ibond-1)==$totalbonds) or die "ibond $ibond != totalbonds $totalbonds";
 
@@ -400,7 +427,7 @@ printf OUT "%11d bonds\n", $totalbonds;
 
 print OUT <<END;
 
-         4 atom types
+         3 atom types
 END
 if(!$k_stiff)
 {
@@ -412,7 +439,7 @@ END
 else
 {
 print OUT <<END;
-         2 bond types
+         1 bond types
 
 END
 }
@@ -427,7 +454,7 @@ print OUT "\nMasses\n\n";
 print OUT "1 1.0\n";
 print OUT "2 1.0\n";
 print OUT "3 1.0\n";
-print OUT "4 1.0\n";
+#print OUT "4 1.0\n";
 
 #print OUT "\nBond Coeffs\n\n";
 #print OUT "1 100 1.0\n";
@@ -529,6 +556,18 @@ for($istep=0;$istep<=int(10.0/$structure_step+0.5);$istep++)
  push @epsBB, -1*$istep*$structure_step;
  }
 }
+elsif($structure eq "PH3")
+{
+@epsAA = ();
+@epsAB = ();
+@epsBB = ();
+for($istep=0;$istep<=int(10.0/$structure_step+0.5);$istep++)
+ {
+ push @epsAA, 0.0;
+ push @epsAB, 5.0;
+ push @epsBB, -1*$istep*$structure_step;
+ }
+}
 else
 {
 die "--structure is not HP nor PH '$structure' \n";
@@ -590,8 +629,8 @@ if($k_stiff)
  if($comm_mod)
  {
 print SCRIPT <<END;
-comm_modify cutoff ${comm_mod}
-newton off
+#comm_modify cutoff ${comm_mod}
+#newton off
 END
  }
 }
@@ -601,7 +640,8 @@ atom_style bond
 neighbor        1.5 bin
 neigh_modify    every 5 delay 5 check yes one 10000
 
-pair_style hybrid/overlay yukawa 1.2 4.0 lj/cut 1.1224620 lj/expand 1.1224620
+#pair_style hybrid/overlay yukawa 1.2 4.0 lj/cut 1.1224620 lj/expand 1.1224620
+pair_style hybrid/overlay yukawa 1.2 4.0 lj/cut 1.1224620 
 END
 
 if(!$k_stiff)
@@ -612,8 +652,12 @@ END
 }
 else
 {
+#print SCRIPT <<END;
+#bond_style hybrid fene harmonic 
+#END
+
 print SCRIPT <<END;
-bond_style hybrid fene harmonic 
+bond_style fene  
 END
 
 }
@@ -623,13 +667,14 @@ boundary p p p
 #special_bonds fene
 special_bonds lj/coul 1.0 1.0 1.0
 
+
 read_data $datafile
 
 velocity all create ${set_temp} $seed2
 
 pair_coeff 1*3 1*3 lj/cut 1.0 1.0 1.1224620
-pair_coeff * 4 lj/expand 1.0 1.0 ${R_sphere2} 1.1224620
-pair_coeff 3 4 lj/expand 0.0 1.0 ${R_sphere2} 1.1224620
+#pair_coeff * 4 lj/expand 1.0 1.0 ${R_sphere2} 1.1224620
+#pair_coeff 3 4 lj/expand 0.0 1.0 ${R_sphere2} 1.1224620
 pair_coeff 1 1 yukawa $epsAA[0]
 pair_coeff 1 3 yukawa $epsAA[0]
 pair_coeff 3 3 yukawa $epsAA[0]
@@ -648,9 +693,12 @@ END
 else
 {
 $R_bond = $R_sphere + 0.5;
+#print SCRIPT <<END;
+#bond_coeff 1 fene 30.0 1.5 0.0 1.0
+#bond_coeff 2 harmonic ${k_stiff} ${R_bond}
+#END
 print SCRIPT <<END;
 bond_coeff 1 fene 30.0 1.5 0.0 1.0
-bond_coeff 2 harmonic ${k_stiff} ${R_bond}
 END
 }
 
@@ -658,17 +706,24 @@ if($k_stiff)
  {
 print SCRIPT <<END;
 
-group roots type 4
+#group roots type 4
 group rest type 1 2 3
 group type2 type 2
 group type1 type 1 3
+group walled type 3
+
+region mywall cylinder z ${lx} ${ly} ${R_sphere} ${R_sphere} 0.0 ${totallz} 
+fix repwall all wall/region lj126 1.0 1.0 1.1224620
+fix bondwall walled wall/region harmonic ${k_stiff} 1.0 2.5
+
 END
  }
  else
  {
 print SCRIPT <<END;
 
-group roots type 3 4
+#group roots type 3 4
+group roots type 3 
 group rest type 1 2
 group type2 type 2
 group type1 type 1 3
@@ -764,12 +819,12 @@ for($iatom=1;$iatom<=$totalatoms;$iatom++)
 
 close(PART);
 
-if(!$k_stiff)
-{
-print SCRIPT "variable coreid atomfile coreid.txt\n";
-
-print SCRIPT "fix firig roots rigid/nve custom v_coreid langevin ${set_temp} ${set_temp} 100.0 $seed \n";
-}
+#if(!$k_stiff)
+#{
+#print SCRIPT "variable coreid atomfile coreid.txt\n";
+#
+#print SCRIPT "fix firig roots rigid/nve custom v_coreid langevin ${set_temp} ${set_temp} 100.0 $seed \n";
+#}
 
 #for($igroup=0;$igroup<$spheres;$igroup++)
 #{
@@ -1069,7 +1124,21 @@ END
 for($ip=1;$ip<scalar(@epsAA);$ip++)
  {
 #my $time_out = $time_mult[$ip]*$time;
-my $time_out = $time;
+if($structure eq "PH3")
+{
+if($epsBB[$ip]<=-5)
+ {
+$time_out = $time;
+ }
+ else
+ {
+$time_out = $time/10;
+ }
+}
+else
+{
+$time_out = $time;
+}
 
  print SCRIPT <<END;
 pair_coeff 1 1 yukawa $epsAA[$ip]
