@@ -161,6 +161,7 @@ if($k_stiff)
 
 if($dens)
 {
+print "dens $dens \n";
 $m_real = pi / asin( 0.5* $dens/$R_sphere );
 $m_int = int($m_real + 0.5);
 
@@ -171,8 +172,9 @@ $dz = $dx * sqrt(3.0) * 0.5;
 $m_z_real = $R_sphere / $dz;
 $m_z_int = $aspect_ratio * 2 * int($m_z_real + 0.5);
 }
-elsif($N_cz)
+elsif($N_crad)
 {
+print "crad $N_crad \n";
 #$m_real = pi / asin( 0.5* $dens/$R_sphere );
 #$m_int = int($m_real + 0.5);
 
