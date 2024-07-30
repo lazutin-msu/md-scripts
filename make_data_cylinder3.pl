@@ -4,7 +4,7 @@ use File::Copy;
 use Math::Trig;
 use POSIX;
     
-$dens = 3.0; # hex lattice size
+#$dens = 3.0; # hex lattice size
 $N = 50;
 #$chains = 10; #10x10
 $time = 2000000;
