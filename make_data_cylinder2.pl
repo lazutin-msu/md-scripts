@@ -10,6 +10,7 @@ $N = 50;
 $time = 2000000;
 $repeat = 1;
 $R_sphere = 5;
+$aspect_ratio = 1;
 
 $Ngpu = 1;
 #$Ncpu = 6;
@@ -32,6 +33,7 @@ GetOptions (
 'length|n=i' => \$N,
 'chains|c=i' => \$chains,
 'rsphere|a=f' => \$R_sphere,
+'aspect=i' => \$aspect_ratio,
 'repeat|r=i' => \$repeat,
 'time|t=i' => \$time,
 'step|s=f' => \$step,
@@ -143,13 +145,38 @@ if($gpu_num)
 $gpuid = $gpu_num;
 }
 
+$R_sphere_wall = $R_sphere;
+
+#$R_sphere = $R_sphere + 0.5;
+
+if($k_stiff)
+ {
+ $name_prefix = "mov"
+ }
+ else
+ {
+ $name_prefix = "fix"
+ }
+
+$m_real = pi / asin( 0.5* $dens/$R_sphere );
+$m_int = int($m_real + 0.5);
+
+$drad =  2.0 * pi / $m_int;
+$dx = 2.0 * $R_sphere * sin( $drad * 0.5 );
+
+$dz = $dx * sqrt(3.0) * 0.5;
+$m_z_real = $R_sphere / $dz;
+$m_z_int = $aspect_ratio * 2 * int($m_z_real + 0.5);
+
 
 #if($gpuid==1){$gpuid=2;}
-printf "R_sphere = %f\nchains = %d\nlength = %d \ngpuid= %d\n",$R_sphere,$chains,$N,$gpuid;
+#printf "R_sphere = %f\nchains = %d\nlength = %d \ngpuid= %d\n",$R_sphere,$chains,$N,$gpuid;
+printf "R_sphere = %f\nchain_z = %d\nchain_rad = %d\nlength = %d \ngpuid= %d\n",$R_sphere_wall,$m_z_int,$m_int,$N,$gpuid;
 
 $Ndir = 1;
 
-$desc = sprintf "brush_p%d_c%d_R%f_N%d_str%s_press%.2f",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2];
+#$desc = sprintf "brush_p%d_c%d_R%f_N%d_str%s_press%.2f",$spheres,$chains,$R_sphere,$N,$epsilon[0],$epsilon[1],$epsilon[2];
+$desc = sprintf "brush_cz%d_crad%d_R%f_N%d_str%s_press%.2f",$m_z_int,$m_int,$R_sphere_wall,$N,$epsilon[0],$epsilon[1],$epsilon[2];
 
 if($datafile)
 {
@@ -158,17 +185,20 @@ $is_datafile = 1;
 else
 {
 $is_datafile = 0;
-$datafile = sprintf "data_p%d_c%d_R%f_N%d_str%s_press%.2f",$spheres,$chains,$R_sphere,$N,$structure,$pressure;
+#$datafile = sprintf "data_p%d_c%d_R%f_N%d_str%s_press%.2f",$spheres,$chains,$R_sphere,$N,$structure,$pressure;
+$datafile = sprintf "data_cz%d_crad%d_R%f_N%d_str%s_press%.2f",$m_z_int,$m_int,$R_sphere_wall,$N,$structure,$pressure;
 }
 
 if(scalar(@fix_eps))
  {
-$dirname = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_fixeps_%.2f_%.2f_%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$fix_eps[0],$fix_eps[1],$fix_eps[2],$Ndir;
+#$dirname = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_fixeps_%.2f_%.2f_%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$fix_eps[0],$fix_eps[1],$fix_eps[2],$Ndir;
+$dirname = sprintf "%s_cz%d_crad%d_R%f_N%d_str%s_press%.2f_fixeps_%.2f_%.2f_%.2f_n%d",$name_prefix,$m_z_int,$m_int,$R_sphere_wall,$N,$structure,$pressure,$fix_eps[0],$fix_eps[1],$fix_eps[2],$Ndir;
 $scriptname = "script";
 $shellname_all = "run.sh";
 #$shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
 $shellname = sprintf "run_cpu%d.sh",$cpuid;  #look at run.sh too
-$output_filename = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_fixeps_%.2f_%.2f_%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$fix_eps[0],$fix_eps[1],$fix_eps[2],$Ndir;
+#$output_filename = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_fixeps_%.2f_%.2f_%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$fix_eps[0],$fix_eps[1],$fix_eps[2],$Ndir;
+$output_filename = sprintf "%s_cz%d_crad%d_R%f_N%d_str%s_press%.2f_fixeps_%.2f_%.2f_%.2f_n%d",$name_prefix,$m_z_int,$m_int,$R_sphere_wall,$N,$structure,$pressure,$fix_eps[0],$fix_eps[1],$fix_eps[2],$Ndir;
 
 if( -d $dirname)
  {
@@ -176,20 +206,24 @@ if( -d $dirname)
  while(-d $dirname)
   {
   $Ndir++;
-  $dirname = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_fixeps_%.2f_%.2f_%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$fix_eps[0],$fix_eps[1],$fix_eps[2],$Ndir;
+  #$dirname = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_fixeps_%.2f_%.2f_%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$fix_eps[0],$fix_eps[1],$fix_eps[2],$Ndir;
+  $dirname = sprintf "%s_cz%d_crad%d_R%f_N%d_str%s_press%.2f_fixeps_%.2f_%.2f_%.2f_n%d",$name_prefix,$m_z_int,$m_int,$R_sphere_wall,$N,$structure,$pressure,$fix_eps[0],$fix_eps[1],$fix_eps[2],$Ndir;
 #  $shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
-  $output_filename = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_fixeps_%.2f_%.2f_%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$fix_eps[0],$fix_eps[1],$fix_eps[2],$Ndir;
+  #$output_filename = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_fixeps_%.2f_%.2f_%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$fix_eps[0],$fix_eps[1],$fix_eps[2],$Ndir;
+  $output_filename = sprintf "%s_cz%d_crad%d_R%f_N%d_str%s_press%.2f_fixeps_%.2f_%.2f_%.2f_n%d",$name_prefix,$m_z_int,$m_int,$R_sphere_wall,$N,$structure,$pressure,$fix_eps[0],$fix_eps[1],$fix_eps[2],$Ndir;
   }
  }
  }
  else
  {
-$dirname = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$Ndir;
+#$dirname = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$Ndir;
+$dirname = sprintf "%s_cz%d_crad%d_R%f_N%d_str%s_press%.2f_n%d",$name_prefix,$m_z_int,$m_int,$R_sphere_wall,$N,$structure,$pressure,$Ndir;
 $scriptname = "script";
 $shellname_all = "run.sh";
 #$shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
 $shellname = sprintf "run_cpu%d.sh",$cpuid;  #look at run.sh too
-$output_filename = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$Ndir;
+#$output_filename = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$Ndir;
+$output_filename = sprintf "%s_cz%d_crad%d_R%f_N%d_str%s_press%.2f_n%d",$name_prefix,$m_z_int,$m_int,$R_sphere_wall,$N,$structure,$pressure,$Ndir;
 
 if( -d $dirname)
  {
@@ -197,9 +231,11 @@ if( -d $dirname)
  while(-d $dirname)
   {
   $Ndir++;
-  $dirname = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$Ndir;
+  #$dirname = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$Ndir;
+  $dirname = sprintf "%s_cz%d_crad%d_R%f_N%d_str%s_press%.2f_n%d",$name_prefix,$m_z_int,$m_int,$R_sphere_wall,$N,$structure,$pressure,$Ndir;
 #  $shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
-  $output_filename = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$Ndir;
+  #$output_filename = sprintf "p%d_c%d_R%f_N%d_str%s_press%.2f_n%d",$spheres,$chains,$R_sphere,$N,$structure,$pressure,$Ndir;
+  $output_filename = sprintf "%s_cz%d_crad%d_R%f_N%d_str%s_press%.2f_n%d",$name_prefix,$m_z_int,$m_int,$R_sphere_wall,$N,$structure,$pressure,$Ndir;
   }
  }
  
@@ -212,17 +248,18 @@ $dirname = $dirname."/";
 #$dx = sqrt(1.0 / $dens);
 #$dx = $dens; # dens now size of grafting points' cell
 
-$m_real = 2 * pi / asin( 0.5* $dens/$R_sphere )
-$m_int = int($m_real + 0.5)
 
-$drad = 2.0 * pi / $m_int
-$dx = 2.0 * $R_sphere * sin( $drad )
 
 $radius = 0.5;
 $bond = 2.0*$radius;
 if($dx<(2.0*$bond)){$bond=$dx/2.0;}
 
 $delta_rho = $bond;
+
+
+print "m_int $m_int m_z_int $m_z_int dx $dx dz $dz \n";
+
+$chains = $m_z_int * $m_int;
 
 #$natoms = 2 * $chains * $N + 1;
 $natoms = 2 * $chains * $N ;
@@ -248,12 +285,9 @@ $totalbonds = $nbonds ;
 $lx =  ( $N + $R_sphere ) +2;
 $ly =  ( $N + $R_sphere ) +2;
 
-$dz = $dx * sqrt(3.0) * 0.5
-$m_z_real = $R_sphere / $dz
-$m_z_int = int($m_z_real + 0.5)
 
 #$lz =  ( $N + $R_sphere ) +2;
-$lz = $m_z_int * $dz
+$lz = $m_z_int * $dz;
 
 print "$desc \n";
 $ibond = 1;
@@ -269,7 +303,7 @@ $Nspheres = 1;
 
 $totallx = 2* $lx;
 $totally = 2* $ly;
-$totallz = 2* $lz;
+$totallz = $lz;
 
 
 $isphere = 0;
@@ -302,11 +336,11 @@ for($kz=0;$kz<$m_z_int;$kz++)
  {
  if($kz % 2 == 0)
   {
-  $phi0 = 0.
+  $phi0 = 0.;
   }
   else
   {
-  $phi0 = $drad * 0.5
+  $phi0 = $drad * 0.5;
   }
   
  for($krad=0;$krad<$m_int;$krad++)
@@ -314,10 +348,10 @@ for($kz=0;$kz<$m_z_int;$kz++)
 #    $r    = sqrt(1.0-$z*$z);
 #    ($xchain, $ychain, $zchain) = (cos($long)*$r, sin($long)*$r, $z);
     
-    $phi = $phi0 + $drad * $krad
-    $xchain = $R_sphere * cos( $phi )
-    $ychain = $R_sphere * sin( $phi )
-    $zchain = $kz * $dz
+    $phi = $phi0 + $drad * $krad;
+    $xchain = $R_sphere * cos( $phi );
+    $ychain = $R_sphere * sin( $phi );
+    $zchain = $kz * $dz;
 #   my $rho   = sqrt($r*$r+$z*$z)*$R_sphere;
 #   my $phi   = $sp_long;
 #   my $theta = atan2($r,$z);
@@ -333,10 +367,11 @@ for($kz=0;$kz<$m_z_int;$kz++)
 #   $x[$natoms * $isphere + $iatom] = $ix * $spheres_dx + $lx + $rho * sin($theta) * cos($phi);
 #   $y[$natoms * $isphere + $iatom] = $iy * $spheres_dx + $ly + $rho * sin($theta) * sin($phi);
 #   $z[$natoms * $isphere + $iatom] = $iz * $spheres_dx + $lz + $rho * cos($theta) ;
-   $rho_mono = $R_sphere + $radius * $imono
+   $rho_mono = $R_sphere + $bond * $imono;
    $x[$natoms * $isphere + $iatom] = $lx + $rho_mono * cos($phi);
    $y[$natoms * $isphere + $iatom] = $ly + $rho_mono * sin($phi);
-   $z[$natoms * $isphere + $iatom] = $lz + $zchain ;
+#   $z[$natoms * $isphere + $iatom] = $lz + $zchain ;
+   $z[$natoms * $isphere + $iatom] = $zchain ;
 
 #   if($z[$iatom]>0)
 #    {
@@ -346,7 +381,7 @@ for($kz=0;$kz<$m_z_int;$kz++)
 #    {
 #    $my_delta_theta = -$bond / ($R_sphere  + $imono * $delta_rho);
 #    }
-   $my_delta_phi = atan( $bond / $rho_mono )
+   $my_delta_phi = atan( $bond / $rho_mono );
 
    $type[$natoms * $isphere + $iatom] = 1;
    if($imono==0){$type[$natoms * $isphere + $iatom] = 3; $coreid[$natoms * $isphere + $iatom] = $isphere + 1;}
@@ -360,7 +395,8 @@ for($kz=0;$kz<$m_z_int;$kz++)
 
    $x[$natoms * $isphere + $iatom+1] = $lx + $rho_mono * cos($phi + $my_delta_phi);
    $y[$natoms * $isphere + $iatom+1] = $ly + $rho_mono * sin($phi + $my_delta_phi);
-   $z[$natoms * $isphere + $iatom+1] = $lz + $zchain;
+#   $z[$natoms * $isphere + $iatom+1] = $lz + $zchain;
+   $z[$natoms * $isphere + $iatom+1] = $zchain;
 
 #   $rho = $rho + $delta_rho; 
    $type[$natoms * $isphere + $iatom+1] = 2;
@@ -459,7 +495,7 @@ print OUT "3 1.0\n";
 #print OUT "\nBond Coeffs\n\n";
 #print OUT "1 100 1.0\n";
 
-print OUT "\nAtoms\n\n";
+print OUT "\nAtoms # bond\n\n";
 
 for($iatom=1;$iatom<=$totalatoms;$iatom++)
  {
@@ -698,7 +734,7 @@ $R_bond = $R_sphere + 0.5;
 #bond_coeff 2 harmonic ${k_stiff} ${R_bond}
 #END
 print SCRIPT <<END;
-bond_coeff 1 fene 30.0 1.5 0.0 1.0
+bond_coeff 1 30.0 1.5 0.0 1.0
 END
 }
 
@@ -712,9 +748,11 @@ group type2 type 2
 group type1 type 1 3
 group walled type 3
 
-region mywall cylinder z ${lx} ${ly} ${R_sphere} ${R_sphere} 0.0 ${totallz} 
-fix repwall all wall/region lj126 1.0 1.0 1.1224620
-fix bondwall walled wall/region harmonic ${k_stiff} 1.0 2.5
+region mywall cylinder z ${lx} ${ly} ${R_sphere2} INF INF side out
+region mywall2 cylinder z ${lx} ${ly} ${R_sphere2} INF INF side out
+fix repwall all wall/region mywall lj126 1.0 1.0 1.1224620
+fix bondwall walled  wall/region mywall2 harmonic ${k_stiff} 0.5 5.5
+fix_modify energy yes
 
 END
  }
@@ -728,8 +766,8 @@ group rest type 1 2
 group type2 type 2
 group type1 type 1 3
 
-region mywall cylinder z ${lx} ${ly} ${R_sphere} ${R_sphere} 0.0 ${totallz} 
-fix repwall all wall/region lj126 1.0 1.0 1.1224620
+region mywall cylinder z ${lx} ${ly} ${R_sphere2} 0.0 ${totallz} side out
+fix repwall all wall/region mywall lj126 1.0 1.0 1.1224620
 
 END
  }
@@ -758,27 +796,19 @@ if(!$k_stiff)
 print SCRIPT <<END;
 fix lan rest langevin ${set_temp} ${set_temp} 100.0 $seed
 fix finve rest nve 
+velocity roots zero linear
+
+fix root roots move linear 0 0 0
 
 END
 }
 else
 {
-if($fix_particle)
- {
 print SCRIPT <<END;
 fix lan rest langevin ${set_temp} ${set_temp} 100.0 $seed
 fix finve rest nve 
 
 END
- }
- else
- {
-print SCRIPT <<END;
-fix lan all langevin ${set_temp} ${set_temp} 100.0 $seed
-fix finve all nve 
-
-END
- }
 
 }
 
@@ -956,9 +986,13 @@ END
 }
 else
 {
+#print SCRIPT <<END;
+#thermo 1000
+#thermo_style    custom step time temp ke pe evdwl c_yukpair c_ljpair ebond  etotal press  c_dis_min c_dis_max
+#END
 print SCRIPT <<END;
 thermo 1000
-thermo_style    custom step time temp ke pe evdwl c_yukpair c_ljpair ebond  etotal press  c_dis_min c_dis_max
+thermo_style    custom step time temp ke pe evdwl c_yukpair c_ljpair ebond  etotal press 
 END
 }
 print SCRIPT <<END;
