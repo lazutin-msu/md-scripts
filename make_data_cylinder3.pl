@@ -11,6 +11,7 @@ $time = 2000000;
 $repeat = 1;
 $R_sphere = 5;
 $aspect_ratio = 1;
+$R_bond_wall = 2.0;
 
 $Ngpu = 1;
 #$Ncpu = 6;
@@ -32,6 +33,7 @@ GetOptions (
 'crad=i'         => \$N_crad,
 'density|d=f' => \$dens,
 'length|n=i' => \$N,
+'rbond=f' => \$R_bond_wall,
 'chains|c=i' => \$chains,
 'rsphere|a=f' => \$R_sphere,
 'aspect=i' => \$aspect_ratio,
@@ -659,7 +661,10 @@ $num_energy = $time_energy / $step_energy;
 $set_temp = 1.0;
 
 $R_sphere_cutoff = 1.1224620 * $R_sphere;
-$R_sphere2 = $R_sphere - 0.5;
+#$R_sphere2 = $R_sphere - 0.5;
+$R_sphere2 = $R_sphere - 1.0;
+$R_sphere3 = $R_sphere - $R_bond_wall;
+$R_sphere4 = $R_sphere + $R_bond_wall;
 $hi_bound = $R_sphere + $N;
 
 open(SCRIPT,">".$dirname.$scriptname);
@@ -770,12 +775,16 @@ group rest type 1 2 3
 group type2 type 2
 group type1 type 1 3
 group walled type 3
+group grafted type 3
 
 region mywall cylinder z ${lx} ${ly} ${R_sphere2} INF INF side out
-region mywall2 cylinder z ${lx} ${ly} ${R_sphere2} INF INF side out
+region mywall2 cylinder z ${lx} ${ly} ${R_sphere3} INF INF side out
+region mywall3 cylinder z ${lx} ${ly} ${R_sphere4} INF INF side in
 fix repwall all wall/region mywall lj126 1.0 1.0 1.1224620
-fix bondwall walled  wall/region mywall2 harmonic ${k_stiff} 0.5 5.5
-fix_modify energy yes
+#fix bondwall walled  wall/region mywall2 harmonic ${k_stiff} 1.0 2.5
+fix bondwall walled   wall/region mywall2 harmonic ${k_stiff} 1.0 ${R_bond_wall}
+fix bondwall2 walled  wall/region mywall3 harmonic ${k_stiff} 1.0 ${R_bond_wall}
+#fix_modify energy yes
 
 END
  }
@@ -788,6 +797,7 @@ group roots type 3
 group rest type 1 2
 group type2 type 2
 group type1 type 1 3
+group grafted type 3
 
 region mywall cylinder z ${lx} ${ly} ${R_sphere2} 0.0 ${totallz} side out
 fix repwall all wall/region mywall lj126 1.0 1.0 1.1224620
@@ -845,36 +855,36 @@ END
 #}
 #print SCRIPT "fix firig roots rigid/nve group ".$spheres;
 
-if(!$k_stiff)
-{
-open(CORE,">".$dirname."coreid.txt");
+#if(!$k_stiff)
+#{
+#open(CORE,">".$dirname."coreid.txt");
+#
+#print CORE $totalatoms."\n";
+#
+#for($iatom=1;$iatom<=$totalatoms;$iatom++)
+# {
+## if($coreid[$iatom]>0)
+##  {
+#  printf CORE "%d %d\n", $iatom,$coreid[$iatom];
+##  }
+# }
+#
+#close(CORE);
+#}
 
-print CORE $totalatoms."\n";
+#open(PART,">".$dirname."partnum.txt");
+#
+#print PART $totalatoms."\n";
 
-for($iatom=1;$iatom<=$totalatoms;$iatom++)
- {
-# if($coreid[$iatom]>0)
-#  {
-  printf CORE "%d %d\n", $iatom,$coreid[$iatom];
-#  }
- }
-
-close(CORE);
-}
-
-open(PART,">".$dirname."partnum.txt");
-
-print PART $totalatoms."\n";
-
-for($iatom=1;$iatom<=$totalatoms;$iatom++)
- {
-# if($coreid[$iatom]>0)
-#  {
-  printf PART "%d %d\n", $iatom,$partnum[$iatom];
-#  }
- }
-
-close(PART);
+#for($iatom=1;$iatom<=$totalatoms;$iatom++)
+# {
+## if($coreid[$iatom]>0)
+##  {
+#  printf PART "%d %d\n", $iatom,$partnum[$iatom];
+##  }
+# }
+#
+#close(PART);
 
 #if(!$k_stiff)
 #{
@@ -892,7 +902,7 @@ close(PART);
 print SCRIPT <<END;
 #fix lanri roots langevin ${set_temp} ${set_temp} 100.0 $seed
 
-run 0
+#run 0
 
 
 #fix zlowall all wall/lj93 zlo EDGE 2.0 1.0 0.8583742
@@ -964,38 +974,39 @@ print SCRIPT <<END;
 #region cut block ${xlo_bound} ${xhi_bound} ${ylo_bound} ${yhi_bound} INF INF side in units lattice
 #group gcut dynamic type1 region cut every ${time_dump}
 
-variable partnum atomfile partnum.txt
-compute part all chunk/atom v_partnum
-compute msd all msd/chunk part 
-fix fixmsd all ave/time 1000 1 1000 c_msd[1] file msd1.txt mode vector 
-fix fixmsd2 all ave/time 1000 1 1000 c_msd[2] file msd2.txt mode vector 
-fix fixmsd3 all ave/time 1000 1 1000 c_msd[3] file msd3.txt mode vector 
-fix fixmsd4 all ave/time 1000 1 1000 c_msd[4] file msd4.txt mode vector 
+#variable partnum atomfile partnum.txt
+#compute part all chunk/atom v_partnum
+#compute msd all msd/chunk part 
+#fix fixmsd all ave/time 1000 1 1000 c_msd[1] file msd1.txt mode vector 
+#fix fixmsd2 all ave/time 1000 1 1000 c_msd[2] file msd2.txt mode vector 
+#fix fixmsd3 all ave/time 1000 1 1000 c_msd[3] file msd3.txt mode vector 
+#fix fixmsd4 all ave/time 1000 1 1000 c_msd[4] file msd4.txt mode vector 
 
-compute gyr all gyration/chunk part
-fix fixgyr all ave/time 1000 1 1000 c_gyr file gyr1.txt mode vector
-fix fixgyr2 all ave/time 1000 500 1000000 c_gyr file gyr2.txt mode vector
-#fix gyrhist all ave/histo 1000 1 1000 0 50 500 c_gyr  mode vector ave one  beyond end file gyrhist.txt
-#fix gyrhist2 all ave/histo 1000 500 1000000 0 50 500 c_gyr  mode vector ave one  beyond end file gyrhist2.txt
+#compute gyr all gyration/chunk part
+#fix fixgyr all ave/time 1000 1 1000 c_gyr file gyr1.txt mode vector
+#fix fixgyr2 all ave/time 1000 500 1000000 c_gyr file gyr2.txt mode vector
+##fix gyrhist all ave/histo 1000 1 1000 0 50 500 c_gyr  mode vector ave one  beyond end file gyrhist.txt
+##fix gyrhist2 all ave/histo 1000 500 1000000 0 50 500 c_gyr  mode vector ave one  beyond end file gyrhist2.txt
 
-compute cluster all aggregate/atom 1.1
-compute cc1 all chunk/atom c_cluster compress yes
-compute size all property/chunk cc1 count
-fix cluhist all ave/histo  5000  50  250000 0 100000 100000 c_size mode vector ave one beyond ignore file newcluster.txt
-fix cluhistb all ave/histo 5000 100 1000000 0 100000 100000 c_size mode vector ave one beyond ignore file newclusterb.txt
+#compute cluster all aggregate/atom 1.1
+#compute cc1 all chunk/atom c_cluster compress yes
+#compute size all property/chunk cc1 count
+#fix cluhist all ave/histo  5000  50  250000 0 100000 100000 c_size mode vector ave one beyond ignore file newcluster.txt
+#fix cluhistb all ave/histo 5000 100 1000000 0 100000 100000 c_size mode vector ave one beyond ignore file newclusterb.txt
 
-compute cluster2 all aggregate/atom 1.05
-compute cc2 all chunk/atom c_cluster2 compress yes
-compute size2 all property/chunk cc2 count
-fix cluhist2 all ave/histo  5000  50  250000 0 100000 100000 c_size2 mode vector ave one beyond ignore file newcluster2.txt
-fix cluhist2b all ave/histo 5000 100 1000000 0 100000 100000 c_size2 mode vector ave one beyond ignore file newcluster2b.txt
+#compute cluster2 all aggregate/atom 1.05
+#compute cc2 all chunk/atom c_cluster2 compress yes
+#compute size2 all property/chunk cc2 count
+#fix cluhist2 all ave/histo  5000  50  250000 0 100000 100000 c_size2 mode vector ave one beyond ignore file newcluster2.txt
+#fix cluhist2b all ave/histo 5000 100 1000000 0 100000 100000 c_size2 mode vector ave one beyond ignore file newcluster2b.txt
 
-compute cluster3 all aggregate/atom 1.0
-compute cc3 all chunk/atom c_cluster3 compress yes
-compute size3 all property/chunk cc3 count
-fix cluhist3  all ave/histo 5000  50  250000 0 100000 100000 c_size3 mode vector ave one beyond ignore file newcluster3.txt
-fix cluhist3b all ave/histo 5000 100 1000000 0 100000 100000 c_size3 mode vector ave one beyond ignore file newcluster3b.txt
+#compute cluster3 all aggregate/atom 1.0
+#compute cc3 all chunk/atom c_cluster3 compress yes
+#compute size3 all property/chunk cc3 count
+#fix cluhist3  all ave/histo 5000  50  250000 0 100000 100000 c_size3 mode vector ave one beyond ignore file newcluster3.txt
+#fix cluhist3b all ave/histo 5000 100 1000000 0 100000 100000 c_size3 mode vector ave one beyond ignore file newcluster3b.txt
 
+#compute gp_rad grafted chunk/atom bin/cylinder z ${lx} ${ly} ${R_sphere3}
 
 compute yukpair all pair yukawa
 compute ljpair all pair lj/cut
