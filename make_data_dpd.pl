@@ -183,8 +183,9 @@ my $NB2 = shift;
 my $time = shift;
 my $N = shift;
 my $cell_size = shift;
+my $phi = shift;
 
-my $desc = sprintf "A%dB%d_B%d_t%d_c%d_n%d",$NA,$NB,$NB2,$time,$cell_size,$N;
+my $desc = sprintf "A%dB%d_B%d_phi%.2f_t%d_c%d_n%d",$NA,$NB,$NB2,$phi,$time,$cell_size,$N;
 return $desc;
 }
 
@@ -212,12 +213,12 @@ $datafile1 = datafilename1($NA, $NB, $time, $Ndir, $cell_size);
 $datafile2 = datafilename2($NB2, $time, $Ndir, $cell_size);
 }
 
-$dirname = dirname($NA, $NB, $NB2, $time, $Ndir, $cell_size);
+$dirname = dirname($NA, $NB, $NB2, $time, $Ndir, $cell_size, $phi);
 $scriptname = "script";
 $shellname_all = "run.sh";
 #$shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
 $shellname = sprintf "run_cpu%d.sh",$cpuid;  #look at run.sh too
-$output_filename = dirname($NA, $NB, $NB2, $time, $Ndir, $cell_size);
+$output_filename = dirname($NA, $NB, $NB2, $time, $Ndir, $cell_size, $phi);
 
 if( -d $dirname)
  {
@@ -225,9 +226,9 @@ if( -d $dirname)
  while(-d $dirname)
   {
   $Ndir++;
-  $dirname = dirname($NA, $NB, $NB2, $time, $Ndir, $cell_size);
+  $dirname = dirname($NA, $NB, $NB2, $time, $Ndir, $cell_size, $phi);
 #  $shellname = sprintf "run_c%d_d%f_N%d_n%d.sh",$chains,$dens,$N,$Ndir;
-  $output_filename = dirname($NA, $NB, $NB2, $time, $Ndir, $cell_size);
+  $output_filename = dirname($NA, $NB, $NB2, $time, $Ndir, $cell_size, $phi);
   }
  }
  
@@ -608,7 +609,8 @@ cd $dirname
 #/home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
 #mpirun -np 4 /home/lazutin/src/lammps-29Oct20/build/lmp  -in $scriptname
 #sbatch -n 256 --time=1-23:30:00 -p compute_prio ompi /home/lazutin_2123/_scratch/src/lammps-29Oct20/build-nogpu/lmp  -in ${scriptname}
-sbatch -n 56 --time=23:30:00 -p compute ompi /home/lazutin_2123/_scratch/src/lammps-29Oct20/build-nogpu/lmp  -in ${scriptname}
+#sbatch -n 56 --time=1-23:30:00 -p compute ompi /home/lazutin_2123/_scratch/src/lammps-29Oct20/build-nogpu/lmp  -in ${scriptname}
+sbatch -n 56 --time=1-23:30:00 --reservation=compute-2024oct -p compute_prio ompi /home/lazutin_2123/_scratch/src/lammps-29Oct20/build-nogpu/lmp  -in ${scriptname}
 cd ..
 END
 }
